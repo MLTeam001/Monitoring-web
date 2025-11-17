@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Temperature Monitor{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>📊 Dashboard Live Monitoring</h1>
+    <p>Status real-time semua ruangan</p>
+    <div class="header-actions">
+        <button onclick="refreshDashboard()" class="btn btn-sm">🔄 Refresh</button>
+        <button onclick="simulateData()" class="btn btn-sm btn-outline">🎲 Data Baru</button>
+    </div>
+</div>
+
+<div class="stats-overview">
+    <div class="stat-card total-people">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+            <h3>Total Orang</h3>
+            <p class="stat-number">{{ total_people }}</p>
+        </div>
+    </div>
+    <div class="stat-card total-rooms">
+        <div class="stat-icon">🏠</div>
+        <div class="stat-info">
+            <h3>Total Ruangan</h3>
+            <p class="stat-number">{{ room_stats|length }}</p>
+        </div>
+    </div>
+    <div class="stat-card ml-status">
+        <div class="stat-icon">🤖</div>
+        <div class="stat-info">
+            <h3>ML Status</h3>
+            <p class="stat-number">Active</p>
+        </div>
+    </div>
+</div>
+
+<div class="rooms-grid">
+    {% for room in room_stats %}
+    <div class="room-card status-{{ room.status }}">
+        <div class="room-header">
+            <h3>{{ room.name }}</h3>
+            <span class="room-badge badge-{{ room.status }}">{{ room.status|upper }}</span>
+        </div>
+        
+        <div class="room-info">
+            <div class="info-item">
+                <span class="label">Occupancy:</span>
+                <span class="value">{{ room.occupancy }}/{{ room.capacity }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Avg Temp:</span>
+                <span class="value">{{ "%.1f"|format(room.avg_temp) }}°C</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Risk Score:</span>
+                <span class="value">{{ room.risk_score }}/100</span>
+            </div>
+        </div>
+        
+        <div class="room-actions">
+            <a href="/monitoring?room={{ room.name }}" class="btn btn-sm btn-primary">Monitor</a>
+            <button onclick="clearRoom('{{ room.name }}')" class="btn btn-sm btn-outline">Clear</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <h2>📈 Quick Actions</h2>
+    <div class="action-buttons">
+        <button onclick="simulateData()" class="btn btn-primary">🎲 Generate Random Data</button>
+        <button onclick="testAllRooms()" class="btn btn-secondary">🧪 Test All Rooms</button>
+        <a href="/test-ml" class="btn btn-outline">🤖 Test ML Model</a>
+    </div>
+</div>
+
+<script>
+function refreshDashboard() {
+    location.reload();
+}
+
+function simulateData() {
+    fetch('/api/simulate-data')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Data berhasil dibuat!');
+                refreshDashboard();
+            }
+        });
+}
+
+function clearRoom(roomName) {
+    if (confirm(`Kosongkan ${roomName}?`)) {
+        fetch(`/api/clear-room/${roomName}`, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    refreshDashboard();
+                }
+            });
+    }
+}
+
+function testAllRooms() {
+    const testTemps = [35.8, 36.5, 37.0, 37.8, 38.2];
+    let results = [];
+    
+    testTemps.forEach(temp => {
+        fetch('/api/predict-temperature', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ temperature: temp })
+        })
+        .then(response => response.json())
+        .then(data => {
+            results.push(`${temp}°C → ${data.status} (${data.message})`);
+            
+            if (results.length === testTemps.length) {
+                alert('ML Test Results:\n' + results.join('\n'));
+            }
+        });
+    });
+}
+
+setTimeout(refreshDashboard, 30000);
+</script>
+{% endblock %}

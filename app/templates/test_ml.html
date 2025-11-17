@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Test ML - Temperature Monitor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🤖 Test Machine Learning Model</h1>
+    <p>Uji coba model prediksi suhu dengan berbagai input</p>
+</div>
+
+<div class="card">
+    <h2>🧪 Test Individual Prediction</h2>
+    <div class="test-form">
+        <div class="form-group">
+            <label>Suhu untuk di-test (°C):</label>
+            <input type="number" id="test-temp" step="0.1" value="36.5" min="20" max="45">
+        </div>
+        <div class="form-group">
+            <label>Tipe Ruangan:</label>
+            <select id="test-room-type">
+                <option value="normal">Normal</option>
+                <option value="meeting">Meeting Room</option>
+                <option value="ac">AC Room</option>
+            </select>
+        </div>
+        <button onclick="testPrediction()" class="btn btn-primary">Test Prediction</button>
+    </div>
+    
+    <div id="test-result" class="test-result" style="display: none;">
+        <h3>Hasil Prediksi:</h3>
+        <div id="result-content"></div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>📊 Batch Testing</h2>
+    <p>Test multiple temperatures sekaligus:</p>
+    <button onclick="runBatchTest()" class="btn btn-secondary">Run Batch Test</button>
+    
+    <div id="batch-results" class="batch-results" style="display: none; margin-top: 1rem;">
+        <h3>Batch Test Results:</h3>
+        <div id="batch-results-content"></div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>🎯 Threshold Information</h2>
+    <div class="thresholds-info">
+        <div class="threshold-item">
+            <h4>Normal Room</h4>
+            <p>Danger: &lt;36.0°C atau &gt;37.5°C</p>
+            <p>Warning: 36.0-36.3°C atau 37.2-37.5°C</p>
+            <p>Normal: 36.3-37.2°C</p>
+        </div>
+        <div class="threshold-item">
+            <h4>Meeting Room</h4>
+            <p>Danger: &lt;36.0°C atau &gt;37.7°C</p>
+            <p>Warning: 36.0-36.3°C atau 37.4-37.7°C</p>
+            <p>Normal: 36.3-37.4°C</p>
+        </div>
+        <div class="threshold-item">
+            <h4>AC Room</h4>
+            <p>Danger: &lt;35.5°C atau &gt;37.5°C</p>
+            <p>Warning: 35.5-35.8°C atau 37.2-37.5°C</p>
+            <p>Normal: 35.8-37.2°C</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function testPrediction() {
+    const temperature = parseFloat(document.getElementById('test-temp').value);
+    const roomType = document.getElementById('test-room-type').value;
+    
+    fetch('/api/predict-temperature', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            temperature: temperature,
+            room_type: roomType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const resultDiv = document.getElementById('result-content');
+        const resultContainer = document.getElementById('test-result');
+        
+        resultDiv.innerHTML = `
+            <div class="prediction-result status-${data.status}">
+                <div class="result-header">
+                    <h4>Input: ${temperature}°C (${roomType})</h4>
+                    <span class="status-badge status-${data.status}">${data.status.toUpperCase()}</span>
+                </div>
+                <div class="result-details">
+                    <p><strong>Pesan:</strong> ${data.message}</p>
+                    <p><strong>Confidence:</strong> ${(data.confidence * 100).toFixed(1)}%</p>
+                    <p><strong>Timestamp:</strong> ${data.timestamp}</p>
+                </div>
+            </div>
+        `;
+        
+        resultContainer.style.display = 'block';
+    });
+}
+
+function runBatchTest() {
+    const testCases = [
+        { temp: 35.0, room: 'normal' },
+        { temp: 35.8, room: 'normal' },
+        { temp: 36.5, room: 'normal' },
+        { temp: 37.0, room: 'normal' },
+        { temp: 37.8, room: 'normal' },
+        { temp: 38.5, room: 'normal' },
+        { temp: 36.0, room: 'meeting' },
+        { temp: 37.5, room: 'meeting' },
+        { temp: 35.5, room: 'ac' },
+        { temp: 36.5, room: 'ac' }
+    ];
+    
+    const results = [];
+    let completed = 0;
+    
+    testCases.forEach(testCase => {
+        fetch('/api/predict-temperature', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                temperature: testCase.temp,
+                room_type: testCase.room
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            results.push({
+                input: `${testCase.temp}°C (${testCase.room})`,
+                output: data
+            });
+            
+            completed++;
+            
+            if (completed === testCases.length) {
+                displayBatchResults(results);
+            }
+        });
+    });
+}
+
+function displayBatchResults(results) {
+    const container = document.getElementById('batch-results-content');
+    const resultsDiv = document.getElementById('batch-results');
+    
+    let html = '<div class="batch-results-grid">';
+    
+    results.forEach(result => {
+        html += `
+            <div class="batch-result-item status-${result.output.status}">
+                <div class="batch-input">
+                    <strong>Input:</strong> ${result.input}
+                </div>
+                <div class="batch-output">
+                    <strong>Output:</strong> ${result.output.status} - ${result.output.message}
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+    resultsDiv.style.display = 'block';
+}
+</script>
+
+<style>
+.test-result {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+.prediction-result {
+    padding: 1rem;
+    border-radius: 5px;
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.batch-results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.batch-result-item {
+    padding: 1rem;
+    border-radius: 5px;
+    background: #f8f9fa;
+}
+
+.thresholds-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+}
+
+.threshold-item {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+@media (max-width: 768px) {
+    .batch-results-grid,
+    .thresholds-info {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

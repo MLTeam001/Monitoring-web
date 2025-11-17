@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Temperature Monitor{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <h1>🌡️ Sistem Monitoring Suhu Ruangan</h1>
+        <p>Deteksi inteligensia suhu abnormal dengan Machine Learning untuk 10 orang per ruangan</p>
+        <div class="hero-buttons">
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">📊 Live Dashboard</a>
+            <a href="{{ url_for('main.monitoring') }}" class="btn btn-secondary">👥 Monitoring</a>
+            <button onclick="simulateData()" class="btn btn-outline">🔄 Generate Data Test</button>
+        </div>
+    </div>
+</div>
+
+<div class="features">
+    <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>AI-Powered Detection</h3>
+        <p>Machine Learning mendeteksi pola suhu tidak normal secara real-time</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Multi-Room Support</h3>
+        <p>Monitor hingga 10 orang per ruangan dengan 3 tipe ruangan berbeda</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">⚠️</div>
+        <h3>Smart Alert System</h3>
+        <p>Peringatan otomatis ketika suhu melebihi batas aman</p>
+    </div>
+</div>
+
+<div class="info-section">
+    <h2>📋 Spesifikasi Sistem</h2>
+    <div class="specs-grid">
+        <div class="spec-item">
+            <h3>Kapasitas</h3>
+            <p>10 orang per ruangan</p>
+        </div>
+        <div class="spec-item">
+            <h3>Ruang Tersedia</h3>
+            <p>3 ruangan (Normal, Meeting, AC)</p>
+        </div>
+        <div class="spec-item">
+            <h3>Range Suhu Aman</h3>
+            <p>36.0°C - 37.5°C</p>
+        </div>
+        <div class="spec-item">
+            <h3>Monitoring</h3>
+            <p>Real-time dengan ML</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function simulateData() {
+    fetch('/api/simulate-data')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Data simulasi berhasil dibuat!\n' + data.details.join('\n'));
+                window.location.href = '/dashboard';
+            }
+        });
+}
+</script>
+{% endblock %}
