@@ -3,175 +3,185 @@
 {% block title %}Monitoring - {{ room_name }}{% endblock %}
 
 {% block content %}
-<div class="monitoring-header">
-    <h1>👥 Monitoring: {{ room_name }}</h1>
-    
-    <div class="room-controls">
-        <select id="roomSelect" onchange="changeRoom(this.value)">
-            {% for room in rooms_list %}
-            <option value="{{ room }}" {% if room == room_name %}selected{% endif %}>{{ room }}</option>
-            {% endfor %}
-        </select>
-        <button onclick="refreshData()" class="btn btn-sm">🔄 Refresh</button>
-        <button onclick="clearRoom()" class="btn btn-sm btn-outline">🗑️ Clear Room</button>
-    </div>
-</div>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 
-<div class="monitoring-grid">
-    <div class="card">
-        <h2>📊 Status Ruangan</h2>
-        <div id="room-status">
-            <div class="loading">Memuat data...</div>
+<div class="monitoring-container">
+    <div class="stats-bar" style="margin-bottom: 20px;">
+        <div class="mini-stat">
+            <div class="icon">📍</div>
+            <div>
+                <span class="label">Lokasi</span>
+                <span class="value">{{ room_name }}</span>
+            </div>
+        </div>
+        <div class="mini-stat">
+            <div class="icon">🌡️</div>
+            <div id="header-temp">
+                <span class="label">Suhu Rata-rata</span>
+                <span class="value">--°C</span>
+            </div>
+        </div>
+        
+        <div class="header-actions" style="display: flex; gap: 10px;">
+            <select id="roomSelect" onchange="changeRoom(this.value)" class="form-select" style="padding: 5px 10px; border-radius: 5px;">
+                {% for room in rooms_list %}
+                <option value="{{ room }}" {% if room == room_name %}selected{% endif %}>{{ room }}</option>
+                {% endfor %}
+            </select>
+            <button onclick="clearRoom()" class="btn btn-sm btn-outline">🗑️ Reset Data</button>
         </div>
     </div>
 
-    <div class="card">
-        <h2>➕ Tambah Orang</h2>
-        <form id="add-person-form" class="form">
-            <div class="form-group">
-                <input type="text" id="person-name" placeholder="Nama orang" required>
-            </div>
-            <div class="form-group">
-                <input type="number" id="person-temp" step="0.1" min="20" max="45" placeholder="Suhu (°C)" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Tambah ke Ruangan</button>
-        </form>
-    </div>
-</div>
+    <div class="main-grid">
+        
+        <div class="status-section">
+            <div class="cctv-section" style="margin-bottom: 20px;">
+                <h2 class="section-title">📊 Real-time Counters</h2>
+                <div class="counter-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    
+                    <div class="metric-box" style="background: #e3f2fd; border: 1px solid #bbdefb;">
+                        <span class="m-label">🚪 Pintu (Net)</span>
+                        <span class="m-value" id="val-door-net" style="font-size: 2rem;">0</span>
+                        <div style="display: flex; justify-content: space-around; margin-top: 5px; font-size: 0.8rem;">
+                            <span style="color: green;">Occupancy</span>
+                        </div>
+                    </div>
 
-<div class="card">
-    <h2>👥 Orang di Ruangan Ini</h2>
-    <div id="people-list">
-        {% if room_data.current_people %}
-            {% for person in room_data.current_people %}
-            <div class="person-card person-{{ person.status }}">
-                <div class="person-info">
-                    <h4>{{ person.nama }}</h4>
-                    <p class="temperature {{ person.status }}">{{ person.suhu }}°C</p>
-                    <small>{{ person.timestamp }}</small>
+                    <div class="metric-box" style="background: #f3e5f5; border: 1px solid #e1bee7;">
+                        <span class="m-label">📷 Kamera Dalam</span>
+                        <span class="m-value" id="val-inside" style="font-size: 2rem;">0</span>
+                        <small style="color: #666;">Verified Count</small>
+                    </div>
                 </div>
-                <div class="person-status status-{{ person.status }}">
-                    {{ person.status|upper }}
-                </div>
-                <div class="person-message">
-                    {{ person.message }}
+                
+                <div id="health-status-card" class="room-item status-border-normal" style="margin-top: 20px;">
+                    <div class="room-head">
+                        <h3>Status Ruangan</h3>
+                        <span class="badge badge-normal" id="status-badge">NORMAL</span>
+                    </div>
+                    <div class="logic-check" id="status-msg">
+                        Menunggu data analisis...
+                    </div>
                 </div>
             </div>
-            {% endfor %}
-        {% else %}
-            <p class="no-data">Tidak ada orang di ruangan ini</p>
-        {% endif %}
+        </div>
+
+        <div class="data-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 class="section-title" style="margin-bottom: 0;">👥 Detail Pengunjung</h2>
+                <span class="badge" id="total-count-badge" style="background: #333; color: white;">0 Orang</span>
+            </div>
+            
+            <div class="people-list-container" style="max-height: 500px; overflow-y: auto;">
+                <div id="people-list-target">
+                    <div class="no-data" style="text-align: center; padding: 20px; color: #999;">
+                        Memuat data...
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-const currentRoom = '{{ room_name }}';
+    const currentRoom = '{{ room_name }}';
 
-function changeRoom(room) {
-    window.location.href = '/monitoring?room=' + room;
-}
+    function changeRoom(room) {
+        window.location.href = '/monitoring?room=' + room;
+    }
 
-function refreshData() {
-    loadRoomStatus();
-}
-
-function clearRoom() {
-    if (confirm(`Kosongkan ${currentRoom}?`)) {
-        fetch(`/api/clear-room/${currentRoom}`, { method: 'POST' })
+    function clearRoom() {
+        if (confirm(`Reset data ruangan ${currentRoom}?`)) {
+            fetch(`/api/clear-room/${currentRoom}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
+        }
+    }
+    
+    function loadData() {
+        fetch(`/api/room-status/${currentRoom}`)
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    location.reload();
+                // 1. UPDATE ANGKA COUNTER (Pintu & Kamera Dalam)
+                // Menggunakan data occupancy untuk pintu dan jumlah list orang untuk kamera dalam
+                document.getElementById('val-door-net').innerText = data.occupancy; 
+                
+                const people = data.people || [];
+                document.getElementById('val-inside').innerText = people.length;
+                document.getElementById('total-count-badge').innerText = people.length + " Orang";
+
+                // 2. UPDATE SUHU HEADER
+                if(data.analysis && data.analysis.average_temp) {
+                     document.querySelector('#header-temp .value').innerText = data.analysis.average_temp.toFixed(1) + '°C';
                 }
-            });
-    }
-}
 
-function loadRoomStatus() {
-    fetch(`/api/room-status/${currentRoom}`)
-        .then(response => response.json())
-        .then(data => {
-            const container = document.getElementById('room-status');
-            
-            if (data.occupancy > 0) {
-                container.innerHTML = `
-                    <div class="room-overview status-${data.status}">
-                        <div class="overview-item">
-                            <label>Jumlah Orang:</label>
-                            <span>${data.occupancy}/${data.capacity}</span>
-                        </div>
-                        <div class="overview-item">
-                            <label>Suhu Rata-rata:</label>
-                            <span>${data.analysis.average_temp.toFixed(1)}°C</span>
-                        </div>
-                        <div class="overview-item">
-                            <label>Suhu Tertinggi:</label>
-                            <span>${data.analysis.max_temp.toFixed(1)}°C</span>
-                        </div>
-                        <div class="overview-item">
-                            <label>Suhu Terendah:</label>
-                            <span>${data.analysis.min_temp.toFixed(1)}°C</span>
-                        </div>
-                        <div class="overview-item">
-                            <label>Risk Score:</label>
-                            <span>${data.risk_score}/100</span>
-                        </div>
-                        <div class="overview-message">
-                            ${data.analysis.message || 'Ruangan dalam kondisi normal'}
-                        </div>
-                    </div>
-                `;
-            } else {
-                container.innerHTML = '<p class="no-data">Tidak ada orang di ruangan ini</p>';
-            }
-        });
-}
+                // 3. UPDATE STATUS CARD
+                const statusCard = document.getElementById('health-status-card');
+                const statusBadge = document.getElementById('status-badge');
+                
+                // Hapus class lama dan tambah class baru
+                statusCard.className = 'room-item status-border-' + data.status;
+                statusBadge.className = 'badge badge-' + data.status;
+                statusBadge.innerText = data.status.toUpperCase();
+                
+                if(data.analysis && data.analysis.message) {
+                    document.getElementById('status-msg').innerText = data.analysis.message;
+                }
 
-// Handle form submission
-document.getElementById('add-person-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const nama = document.getElementById('person-name').value;
-    const suhu = parseFloat(document.getElementById('person-temp').value);
-    
-    if (!nama || !suhu) {
-        alert('Harap isi semua field!');
-        return;
+                // 4. UPDATE DAFTAR ORANG
+                // PERBAIKAN: Gunakan ID yang SAMA dengan di HTML ('people-list-target')
+                const listTarget = document.getElementById('people-list-target'); 
+                
+                if (people.length === 0) {
+                    listTarget.innerHTML = '<div class="no-data" style="text-align: center; padding: 20px; color: #999;">Tidak ada orang di ruangan ini</div>';
+                } else {
+                    let html = '';
+                    people.slice().reverse().forEach(p => {
+                        html += `
+                        <div class="person-card person-${p.status}" style="background: #f9f9f9; border-left: 4px solid; padding: 10px; margin-bottom: 10px; border-radius: 4px; border-color: ${getStatusColor(p.status)}">
+                            <div style="display:flex; justify-content:space-between;">
+                                <div>
+                                    <h4 style="margin:0;">${p.nama}</h4>
+                                    <small>${p.timestamp}</small>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-weight:bold; font-size:1.1em;">${p.suhu.toFixed(1)}°C</div>
+                                    <span class="badge badge-${p.status}" style="font-size:0.7em;">${p.status.toUpperCase()}</span>
+                                </div>
+                            </div>
+                            <div style="margin-top:5px; font-size:0.9em; color:#666;">
+                                ${p.message}
+                            </div>
+                        </div>
+                        `;
+                    });
+                    listTarget.innerHTML = html;
+                }
+            })
+            .catch(err => console.error("Gagal ambil data:", err));
     }
     
-    fetch('/api/add-person', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            nama: nama,
-            ruangan: currentRoom,
-            suhu: suhu
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('✅ ' + data.message);
-            document.getElementById('add-person-form').reset();
-            // Refresh data
-            setTimeout(() => {
-                location.reload();
-            }, 1000);
-        } else {
-            alert('❌ ' + data.message);
-        }
-    })
-    .catch(error => {
-        alert('Error: ' + error);
-    });
-});
+    // Helper untuk warna border card orang (opsional, biar rapi)
+    function getStatusColor(status) {
+        if(status === 'normal') return '#28a745';
+        if(status === 'warning') return '#ffc107';
+        if(status === 'danger') return '#dc3545';
+        return '#ccc';
+    }
 
-// Load initial data
-loadRoomStatus();
-// Auto refresh every 10 seconds
-setInterval(loadRoomStatus, 10000);
+    setInterval(loadData, 1000);
+    loadData();
 </script>
+
+<style>
+.monitoring-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+</style>
 {% endblock %}
