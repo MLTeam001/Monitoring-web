@@ -4,14 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}People Counter Pro{% endblock %}</title>
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
-
 <body>
 
+    {# --- LOGIKA LAYOUT --- #}
+    
+    {# Block 'app_layout' ini adalah tampilan default (Dashboard dengan Sidebar) #}
+    {# Halaman Landing Page akan menimpa (override) block ini agar kosong #}
+    
     {% block app_layout %}
     <div class="app-wrapper">
         
@@ -23,36 +26,29 @@
             
             <ul class="sidebar-menu">
                 <li class="menu-header">MAIN MENU</li>
-
                 <li>
-                    <a href="{{ url_for('main.dashboard') }}"
-                       class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                    <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
                         <span class="icon">📊</span> Dashboard
                     </a>
                 </li>
-
                 <li>
-                    <a href="{{ url_for('main.monitoring') }}"
-                       class="{% if request.endpoint == 'main.monitoring' %}active{% endif %}">
+                    <a href="{{ url_for('main.monitoring') }}" class="{% if request.endpoint == 'main.monitoring' %}active{% endif %}">
                         <span class="icon">🎥</span> Live Monitoring
                     </a>
                 </li>
-
+                
                 <li class="menu-header">SYSTEM</li>
-
                 <li>
-                    <a href="{{ url_for('main.reports') }}"
-                       class="{% if request.endpoint == 'main.reports' %}active{% endif %}">
+                    <a href="{{ url_for('main.reports') }}" class="{% if request.endpoint == 'main.reports' %}active{% endif %}">
                         <span class="icon">📑</span> Laporan Bulanan
                     </a>
                 </li>
-
                 <li>
                     <a href="#" onclick="alert('Pengaturan Sistem akan segera hadir!')">
                         <span class="icon">⚙️</span> Pengaturan
                     </a>
                 </li>
-
+                
                 <li style="margin-top: auto;">
                     <a href="{{ url_for('main.index') }}" class="logout-link">
                         <span class="icon">🚪</span> Keluar
@@ -68,10 +64,8 @@
                     <h2 id="page-title">{% block page_header %}Overview{% endblock %}</h2>
                     <p class="date-display" id="current-date">Senin, 1 Januari 2025</p>
                 </div>
-
                 <div class="header-right">
                     <div class="notif-btn">🔔 <span class="badge-dot"></span></div>
-
                     <div class="user-profile">
                         <div class="user-info">
                             <span class="name">Admin Petugas</span>
@@ -85,23 +79,15 @@
             <div class="content-body">
                 {% block content %}{% endblock %}
             </div>
-
         </div>
     </div>
     {% endblock %}
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-
     <script>
-        const dateOptions = {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        };
-        document.getElementById('current-date').innerText =
-            new Date().toLocaleDateString('id-ID', dateOptions);
+        // Script kecil untuk tanggal di header
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('id-ID', dateOptions);
     </script>
-
 </body>
 </html>
