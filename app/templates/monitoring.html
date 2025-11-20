@@ -3,8 +3,6 @@
 {% block title %}Monitoring - {{ room_name }}{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-
 <div class="monitoring-container">
     <div class="stats-bar" style="margin-bottom: 20px;">
         <div class="mini-stat">
@@ -14,16 +12,13 @@
                 <span class="value">{{ room_name }}</span>
             </div>
         </div>
-        <div class="mini-stat">
-            <div class="icon">🌡️</div>
-            <div id="header-temp">
-                <span class="label">Suhu Rata-rata</span>
-                <span class="value">--°C</span>
-            </div>
-        </div>
         
         <div class="header-actions" style="display: flex; gap: 10px;">
-            <select id="roomSelect" onchange="changeRoom(this.value)" class="form-select" style="padding: 5px 10px; border-radius: 5px;">
+            <a href="{{ url_for('main.reports') }}" class="btn btn-sm btn-primary" style="text-decoration: none; display:flex; align-items:center;">
+                📊 Lihat Laporan
+            </a>
+
+            <select id="roomSelect" onchange="changeRoom(this.value)" class="form-select">
                 {% for room in rooms_list %}
                 <option value="{{ room }}" {% if room == room_name %}selected{% endif %}>{{ room }}</option>
                 {% endfor %}
@@ -32,53 +27,33 @@
         </div>
     </div>
 
-    <div class="main-grid">
-        
-        <div class="status-section">
-            <div class="cctv-section" style="margin-bottom: 20px;">
-                <h2 class="section-title">📊 Real-time Counters</h2>
-                <div class="counter-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    
-                    <div class="metric-box" style="background: #e3f2fd; border: 1px solid #bbdefb;">
-                        <span class="m-label">🚪 Pintu (Net)</span>
-                        <span class="m-value" id="val-door-net" style="font-size: 2rem;">0</span>
-                        <div style="display: flex; justify-content: space-around; margin-top: 5px; font-size: 0.8rem;">
-                            <span style="color: green;">Occupancy</span>
-                        </div>
-                    </div>
-
-                    <div class="metric-box" style="background: #f3e5f5; border: 1px solid #e1bee7;">
-                        <span class="m-label">📷 Kamera Dalam</span>
-                        <span class="m-value" id="val-inside" style="font-size: 2rem;">0</span>
-                        <small style="color: #666;">Verified Count</small>
-                    </div>
-                </div>
-                
-                <div id="health-status-card" class="room-item status-border-normal" style="margin-top: 20px;">
-                    <div class="room-head">
-                        <h3>Status Ruangan</h3>
-                        <span class="badge badge-normal" id="status-badge">NORMAL</span>
-                    </div>
-                    <div class="logic-check" id="status-msg">
-                        Menunggu data analisis...
-                    </div>
-                </div>
+    <div class="status-section">
+        <div class="cctv-section">
+            <h2 class="section-title" style="text-align: center;">📊 Real-time Counter</h2>
+            
+            <div id="status-card" class="metric-box" style="text-align: center; padding: 30px; margin-bottom: 20px; background: #f8f9fa; border-radius: 10px;">
+                <h1 id="status-text" style="font-size: 2.5rem; margin: 0;">MEMUAT...</h1>
+                <p id="occupancy-text" style="color: #666; font-size: 1.2rem;">0 / 0 Orang</p>
             </div>
-        </div>
 
-        <div class="data-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 class="section-title" style="margin-bottom: 0;">👥 Detail Pengunjung</h2>
-                <span class="badge" id="total-count-badge" style="background: #333; color: white;">0 Orang</span>
+            <div class="counter-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                
+                <div class="metric-box" style="background: #e3f2fd; border: 1px solid #bbdefb; padding: 20px; text-align: center; border-radius: 8px;">
+                    <span class="m-label" style="font-size: 1rem;">🚪 Hitungan Pintu (Net)</span>
+                    <div style="font-size: 3rem; font-weight: bold; color: #0d47a1;" id="val-door-net">0</div>
+                    <div style="display: flex; justify-content: space-around; margin-top: 10px; color: #666;">
+                        <span>Masuk: <b id="val-in">0</b></span>
+                        <span>Keluar: <b id="val-out">0</b></span>
+                    </div>
+                </div>
+
+                <div class="metric-box" style="background: #f3e5f5; border: 1px solid #e1bee7; padding: 20px; text-align: center; border-radius: 8px;">
+                    <span class="m-label" style="font-size: 1rem;">📷 Deteksi Objek</span>
+                    <div style="font-size: 3rem; font-weight: bold; color: #4a148c;" id="val-inside">0</div>
+                    <small style="color: #666;">Orang terdeteksi di dalam frame</small>
+                </div>
             </div>
             
-            <div class="people-list-container" style="max-height: 500px; overflow-y: auto;">
-                <div id="people-list-target">
-                    <div class="no-data" style="text-align: center; padding: 20px; color: #999;">
-                        Memuat data...
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -95,9 +70,7 @@
             fetch(`/api/clear-room/${currentRoom}`, { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    }
+                    if (data.success) location.reload();
                 });
         }
     }
@@ -106,71 +79,34 @@
         fetch(`/api/room-status/${currentRoom}`)
             .then(response => response.json())
             .then(data => {
-                // 1. UPDATE ANGKA COUNTER (Pintu & Kamera Dalam)
-                // Menggunakan data occupancy untuk pintu dan jumlah list orang untuk kamera dalam
+                // 1. Update Angka Utama
                 document.getElementById('val-door-net').innerText = data.occupancy; 
+                document.getElementById('val-inside').innerText = data.inside_count;
                 
-                const people = data.people || [];
-                document.getElementById('val-inside').innerText = people.length;
-                document.getElementById('total-count-badge').innerText = people.length + " Orang";
+                // Update detail pintu
+                document.getElementById('val-in').innerText = data.door_in;
+                document.getElementById('val-out').innerText = data.door_out;
 
-                // 2. UPDATE SUHU HEADER
-                if(data.analysis && data.analysis.average_temp) {
-                     document.querySelector('#header-temp .value').innerText = data.analysis.average_temp.toFixed(1) + '°C';
-                }
+                // 2. Update Status Besar
+                const statusText = document.getElementById('status-text');
+                const statusCard = document.getElementById('status-card');
+                
+                statusText.innerText = data.message;
+                document.getElementById('occupancy-text').innerText = `${data.occupancy} / ${data.capacity} Orang`;
 
-                // 3. UPDATE STATUS CARD
-                const statusCard = document.getElementById('health-status-card');
-                const statusBadge = document.getElementById('status-badge');
-                
-                // Hapus class lama dan tambah class baru
-                statusCard.className = 'room-item status-border-' + data.status;
-                statusBadge.className = 'badge badge-' + data.status;
-                statusBadge.innerText = data.status.toUpperCase();
-                
-                if(data.analysis && data.analysis.message) {
-                    document.getElementById('status-msg').innerText = data.analysis.message;
-                }
-
-                // 4. UPDATE DAFTAR ORANG
-                // PERBAIKAN: Gunakan ID yang SAMA dengan di HTML ('people-list-target')
-                const listTarget = document.getElementById('people-list-target'); 
-                
-                if (people.length === 0) {
-                    listTarget.innerHTML = '<div class="no-data" style="text-align: center; padding: 20px; color: #999;">Tidak ada orang di ruangan ini</div>';
+                // Ubah warna background berdasarkan status
+                if(data.status === 'full') {
+                    statusCard.style.background = '#f8d7da'; // Merah muda
+                    statusText.style.color = '#721c24';
+                } else if(data.status === 'warning') {
+                    statusCard.style.background = '#fff3cd'; // Kuning muda
+                    statusText.style.color = '#856404';
                 } else {
-                    let html = '';
-                    people.slice().reverse().forEach(p => {
-                        html += `
-                        <div class="person-card person-${p.status}" style="background: #f9f9f9; border-left: 4px solid; padding: 10px; margin-bottom: 10px; border-radius: 4px; border-color: ${getStatusColor(p.status)}">
-                            <div style="display:flex; justify-content:space-between;">
-                                <div>
-                                    <h4 style="margin:0;">${p.nama}</h4>
-                                    <small>${p.timestamp}</small>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div style="font-weight:bold; font-size:1.1em;">${p.suhu.toFixed(1)}°C</div>
-                                    <span class="badge badge-${p.status}" style="font-size:0.7em;">${p.status.toUpperCase()}</span>
-                                </div>
-                            </div>
-                            <div style="margin-top:5px; font-size:0.9em; color:#666;">
-                                ${p.message}
-                            </div>
-                        </div>
-                        `;
-                    });
-                    listTarget.innerHTML = html;
+                    statusCard.style.background = '#d4edda'; // Hijau muda
+                    statusText.style.color = '#155724';
                 }
             })
             .catch(err => console.error("Gagal ambil data:", err));
-    }
-    
-    // Helper untuk warna border card orang (opsional, biar rapi)
-    function getStatusColor(status) {
-        if(status === 'normal') return '#28a745';
-        if(status === 'warning') return '#ffc107';
-        if(status === 'danger') return '#dc3545';
-        return '#ccc';
     }
 
     setInterval(loadData, 1000);
@@ -179,7 +115,7 @@
 
 <style>
 .monitoring-container {
-    max-width: 1200px;
+    max-width: 1000px;
     margin: 0 auto;
     padding: 20px;
 }
