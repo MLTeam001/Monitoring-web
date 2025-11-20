@@ -18,13 +18,11 @@ def generate_monthly_data():
     total_visitors = 0
     peak_day = {'date': '', 'count': 0}
     
-    # Generate data untuk 30 hari terakhir
     today = datetime.now()
     for i in range(30):
         date = today - timedelta(days=29-i)
         date_str = date.strftime('%d %b')
         
-        # Random data pengunjung
         visitors = random.randint(50, 200)
         occupancy_rate = random.randint(40, 95)
         alerts = random.randint(0, 5)
@@ -98,7 +96,6 @@ def monitoring():
 
 @bp.route('/reports')
 def reports():
-    """Halaman Laporan Bulanan"""
     report_data = generate_monthly_data()
     return render_template('reports.html', data=report_data)
 
@@ -144,3 +141,33 @@ def clear_room(room_name):
         rooms_data[room_name].update({'door_in':0, 'door_out':0, 'inside_count':0})
         return jsonify({'success': True})
     return jsonify({'error': 'Not found'}), 404
+
+from flask import Blueprint, render_template, jsonify, request
+from ml.temperature_model import temperature_model
+import random
+from datetime import datetime
+
+bp = Blueprint('main', __name__)
+
+rooms_data = {
+    'Ruang A': {
+        'capacity': 10,
+        'door_in': 0,
+        'door_out': 0,
+        'inside_count': 0,
+        'current_people': [], 
+        'room_type': 'normal',
+        'last_update': None
+    },
+    'Ruang B': {
+        'capacity': 8,
+        'door_in': 0, 'door_out': 0, 'inside_count': 0,
+        'current_people': [], 'room_type': 'meeting', 'last_update': None
+    },
+    'Ruang C': {
+        'capacity': 12,
+        'door_in': 0, 'door_out': 0, 'inside_count': 0,
+        'current_people': [], 'room_type': 'ac', 'last_update': None
+    }
+}
+
