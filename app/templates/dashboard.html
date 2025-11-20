@@ -1,146 +1,104 @@
 {% extends "base.html" %}
 
-{% block title %}Command Center - Monitoring{% endblock %}
+{% block title %}Dashboard Utama{% endblock %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='app/static/css/dashboard.css') }}">
+{# Set Judul Halaman di Header #}
+{% block page_header %}Dashboard Okupansi{% endblock %}
+
 {% block content %}
-<div class="dashboard-container">
-    
-    <div class="stats-bar">
-        <div class="mini-stat">
-            <div class="icon">👥</div>
-            <div>
-                <span class="label">Total Visitor</span>
-                <span class="value">{{ total_people }}</span>
-            </div>
+<div class="stats-bar">
+    <div class="mini-stat">
+        <div class="icon" style="background: #e0e7ff; color: #4361ee;">👥</div>
+        <div>
+            <span class="label">Total Pengunjung</span>
+            <span class="value">{{ total_people }}</span>
         </div>
-        <div class="mini-stat">
-            <div class="icon">🏢</div>
-            <div>
-                <span class="label">Active Rooms</span>
-                <span class="value">{{ room_stats|length }}</span>
-            </div>
+    </div>
+    <div class="mini-stat">
+        <div class="icon" style="background: #dcfce7; color: #16a34a;">📹</div>
+        <div>
+            <span class="label">Kamera Aktif</span>
+            <span class="value">{{ room_stats|length }}</span>
         </div>
-        <div class="mini-stat">
-            <div class="icon">🤖</div>
-            <div>
-                <span class="label">System Status</span>
-                <span class="value text-success">ONLINE</span>
+    </div>
+    <div class="mini-stat" style="display: flex; justify-content: flex-end; background: transparent; border: none; box-shadow: none;">
+        <button onclick="refreshDashboard()" class="btn btn-primary">🔄 Sinkronisasi Data</button>
+    </div>
+</div>
+
+<div class="main-grid">
+    <div class="cctv-section">
+       <h2 class="section-title">🎥 Live Camera Feeds</h2>
+        <div class="cctv-grid">
+            {% for room in room_stats %}
+            <div class="cctv-frame">
+                <div class="cctv-screen">
+                    <div class="cctv-overlay">
+                        <div class="rec-indicator">🔴 LIVE</div>
+                        <div class="cam-name">{{ room.name|upper }}</div>
+                        <div class="cam-time" id="clock-{{ loop.index }}">--:--:--</div>
+                        <div class="cam-stats">In/Out: {{ room.door_net }} | Objek: {{ room.inside_val }}</div>
+                    </div>
+                    <div class="no-signal-text">
+                        <div class="icon-cam">📹</div>DATA FEED ONLINE
+                    </div>
+                </div>
+                <div class="cctv-footer"><span class="status-dot blink-green"></span>Koneksi Stabil</div>
             </div>
-        </div>
-        <div class="header-actions">
-            <button onclick="refreshDashboard()" class="btn btn-sm btn-dark">🔄 Sync Data</button>
+            {% endfor %}
         </div>
     </div>
 
-    <div class="main-grid">
-        
-        <div class="cctv-section">
-            <h2 class="section-title">🎥 Live Camera Feeds</h2>
-            <div class="cctv-grid">
-                {% for room in room_stats %}
-                <div class="cctv-frame">
-                    <div class="cctv-screen">
-                        <div class="cctv-overlay">
-                            <div class="rec-indicator">🔴 REC</div>
-                            <div class="cam-name">CAM-{{ loop.index }}: {{ room.name|upper }}</div>
-                            <div class="cam-time" id="clock-{{ loop.index }}">--:--:--</div>
-                            
-                            <div class="cam-stats">
-                                <div><span class="icon">🚪</span> NET: {{ room.door_net }}</div>
-                                <div><span class="icon">👤</span> INSIDE: {{ room.inside_val }}</div>
-                            </div>
-                            
-                            <div class="scan-line"></div>
+    <div class="data-section">
+        <h2 class="section-title">📊 Status Ruangan</h2>
+        <div class="room-list">
+            {% for room in room_stats %}
+            <div class="room-item status-border-{{ room.status }}">
+                <div class="room-head">
+                    <h3>{{ room.name }}</h3>
+                    {% if room.status == 'full' %}
+                        <span class="badge badge-danger">PENUH</span>
+                    {% elif room.status == 'warning' %}
+                        <span class="badge badge-warning">RAMAI</span>
+                    {% else %}
+                        <span class="badge badge-normal">TERSEDIA</span>
+                    {% endif %}
+                </div>
+                
+                <div class="metric-grid" style="grid-template-columns: 1fr;">
+                    <div class="metric-box" style="background:transparent; padding:0; text-align:left;">
+                        <span class="m-label" style="margin-bottom:5px; display:block;">Kapasitas: {{ room.occupancy }} / {{ room.capacity }}</span>
+                        <div class="progress-bar">
+                            <div class="fill" style="width: {{ room.percentage }}%; background-color: {% if room.status == 'full' %}#dc3545{% elif room.status == 'warning' %}#ffc107{% else %}#28a745{% endif %};"></div>
                         </div>
-                        <div class="no-signal-text">
-                            <div class="icon-cam">📹</div>
-                            DATA FEED CONNECTED<br>
-                            <small>Waiting for video stream...</small>
-                        </div>
-                    </div>
-                    <div class="cctv-footer">
-                        <span class="status-dot {% if room.status == 'danger' %}blink-red{% else %}blink-green{% endif %}"></span>
-                        Status: {{ room.status|upper }}
                     </div>
                 </div>
-                {% endfor %}
-            </div>
-        </div>
 
-        <div class="data-section">
-            <h2 class="section-title">📊 Room Analytics</h2>
-            <div class="room-list">
-                {% for room in room_stats %}
-                <div class="room-item status-border-{{ room.status }}">
-                    <div class="room-head">
-                        <h3>{{ room.name }}</h3>
-                        <span class="badge badge-{{ room.status }}">{{ room.status }}</span>
-                    </div>
-                    
-                    <div class="metric-grid">
-                        <div class="metric-box">
-                            <span class="m-label">Occupancy</span>
-                            <span class="m-value">{{ room.occupancy }}/{{ room.capacity }}</span>
-                            <div class="progress-bar">
-                                <div class="fill" style="width: {{ (room.occupancy / room.capacity * 100)|int }}%"></div>
-                            </div>
-                        </div>
-                        <div class="metric-box">
-                            <span class="m-label">Temperature</span>
-                            <span class="m-value">{{ "%.1f"|format(room.avg_temp) }}°C</span>
-                        </div>
-                        <div class="metric-box">
-                            <span class="m-label">Risk Score</span>
-                            <span class="m-value">{{ room.risk_score }}%</span>
-                        </div>
-                    </div>
-
-                    <div class="logic-check">
-                        <small>Logic Check:</small>
-                        <div class="check-row">
-                            <span>Pintu (Net): <strong>{{ room.door_net }}</strong></span>
-                            <span>vs</span>
-                            <span>Dalam: <strong>{{ room.inside_val }}</strong></span>
-                        </div>
-                    </div>
-
-                    <div class="action-row">
-                        <a href="/monitoring?room={{ room.name }}" class="btn-link">Detail View →</a>
-                        <button onclick="clearRoom('{{ room.name }}')" class="btn-icon">🗑️</button>
-                    </div>
+                <div class="action-row" style="margin-top:15px;">
+                    <a href="/monitoring?room={{ room.name }}" class="btn-link">Detail →</a>
+                    <button onclick="clearRoom('{{ room.name }}')" class="btn-icon">🗑️</button>
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
-
     </div>
 </div>
 
 <script>
-function refreshDashboard() {
-    location.reload();
-}
-
+function refreshDashboard() { location.reload(); }
 function updateClocks() {
     const now = new Date();
     const timeString = now.toLocaleTimeString();
-    document.querySelectorAll('.cam-time').forEach(el => {
-        el.innerText = timeString;
-    });
+    document.querySelectorAll('.cam-time').forEach(el => el.innerText = timeString);
 }
-
 function clearRoom(roomName) {
-    if (confirm(`Reset data ruangan ${roomName}?`)) {
+    if (confirm(`Reset hitungan ${roomName}?`)) {
         fetch(`/api/clear-room/${roomName}`, { method: 'POST' })
             .then(response => response.json())
-            .then(data => {
-                if (data.success) refreshDashboard();
-            });
+            .then(data => { if (data.success) refreshDashboard(); });
     }
 }
-
 setInterval(updateClocks, 1000);
-setTimeout(refreshDashboard, 2000); // Auto refresh data 2 detik
+setTimeout(refreshDashboard, 2000); 
 </script>
 {% endblock %}

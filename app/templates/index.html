@@ -1,70 +1,199 @@
 {% extends "base.html" %}
 
-{% block title %}Home - Temperature Monitor{% endblock %}
+{% block title %}CoVis - Solusi Monitoring Cerdas{% endblock %}
 
-{% block content %}
-<div class="hero-section">
-    <div class="hero-content">
-        <h1>🌡️ Sistem Monitoring Suhu Ruangan</h1>
-        <p>Deteksi inteligensia suhu abnormal dengan Machine Learning untuk 10 orang per ruangan</p>
-        <div class="hero-buttons">
-            <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">📊 Live Dashboard</a>
-            <a href="{{ url_for('main.monitoring') }}" class="btn btn-secondary">👥 Monitoring</a>
-            <button onclick="simulateData()" class="btn btn-outline">🔄 Generate Data Test</button>
+{# KUNCINYA DI SINI: Kita timpa 'app_layout' agar Sidebar & Header Dashboard HILANG #}
+{% block app_layout %}
+
+<div class="landing-body">
+    
+    <nav class="landing-nav">
+        <div class="nav-content">
+            <div class="logo">
+                <span>👁️</span> CoVis<span class="dot">.AI</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#home">Beranda</a></li>
+                <li><a href="#about">Tentang</a></li>
+                <li><a href="#features">Fitur</a></li>
+                <li><a href="#pricing">Harga</a></li>
+                <li><a href="#contact">Kontak</a></li>
+            </ul>
+            <a href="{{ url_for('main.dashboard') }}" class="btn-nav-cta">Masuk Dashboard</a>
         </div>
-    </div>
+    </nav>
+
+    <section id="home" class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="hero-text">
+            <div class="badge-new">✨ Teknologi Terbaru 2025</div>
+            <h1>Monitoring Okupansi <br> Berbasis <span>Artificial Intelligence</span></h1>
+            <p>Hitung jumlah pengunjung secara real-time dengan akurasi tinggi menggunakan CCTV dan Computer Vision. Solusi cerdas untuk manajemen kapasitas ruangan Anda.</p>
+            <div class="hero-btns">
+                <a href="{{ url_for('main.dashboard') }}" class="btn-primary-lg">🚀 Mulai Sekarang</a>
+                <a href="#about" class="btn-secondary-lg">Pelajari Lebih Lanjut</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <h3>99%</h3>
+                    <p>Akurasi Deteksi</p>
+                </div>
+                <div class="stat-item">
+                    <h3>0.5s</h3>
+                    <p>Waktu Respon</p>
+                </div>
+                <div class="stat-item">
+                    <h3>24/7</h3>
+                    <p>Monitoring</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="section-white">
+        <div class="content-wrapper">
+            <div class="section-header">
+                <h2>Tentang Project</h2>
+                <p>Mengapa kami membangun sistem ini?</p>
+            </div>
+            <div class="about-grid">
+                <div class="about-image">
+                    <div class="img-placeholder">
+                        <div class="grid-line"></div>
+                        <div class="grid-line"></div>
+                        <div class="scan-beam"></div>
+                        <span>AI VISION PROCESSING</span>
+                    </div>
+                </div>
+                <div class="about-desc">
+                    <h3>Revolusi Manajemen Keramaian</h3>
+                    <p>Project <strong>People Counter AI</strong> dikembangkan untuk menjawab tantangan manajemen kapasitas ruangan di era modern. Kami menggabungkan kekuatan:</p>
+                    <ul class="check-list">
+                        <li>✅ <strong>YOLOv8 Deep Learning</strong> untuk deteksi objek presisi.</li>
+                        <li>✅ <strong>Flask Framework</strong> untuk performa web yang ringan.</li>
+                        <li>✅ <strong>Real-time Analytics</strong> untuk pengambilan keputusan cepat.</li>
+                    </ul>
+                    <p>Cocok digunakan untuk perpustakaan, ruang rapat, toko retail, hingga pemantauan keamanan gedung.</p>
+                    
+                    <div class="author-box">
+                        <div class="author-img">👨‍💻</div>
+                        <div>
+                            <strong>Farhan Kamil Hermansyah</strong>
+                            <span>Lead Developer & AI Engineer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="section-dark">
+        <div class="content-wrapper">
+            <div class="section-header">
+                <h2>Fitur Unggulan</h2>
+                <p>Teknologi canggih dalam satu dashboard terintegrasi</p>
+            </div>
+            <div class="features-grid-3">
+                <div class="feat-card">
+                    <div class="feat-icon">📹</div>
+                    <h3>Multi-Camera Support</h3>
+                    <p>Pantau banyak ruangan sekaligus dalam satu layar dashboard yang terpusat tanpa lag.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">🧠</div>
+                    <h3>AI Intelligence</h3>
+                    <p>Menggunakan model YOLOv8n yang telah dilatih khusus untuk mengenali manusia dari berbagai sudut.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">⚡</div>
+                    <h3>Smart Alerts</h3>
+                    <p>Dapatkan notifikasi instan (Warna Merah) ketika ruangan melebihi kapasitas aman.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">📊</div>
+                    <h3>Live Analytics</h3>
+                    <p>Data statistik pengunjung masuk dan keluar ditampilkan secara real-time dan akurat.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">🔒</div>
+                    <h3>Privacy Focused</h3>
+                    <p>Sistem hanya menghitung jumlah orang tanpa menyimpan identitas wajah pengunjung.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="feat-icon">📱</div>
+                    <h3>Responsive Design</h3>
+                    <p>Akses dashboard monitoring dari Laptop, Tablet, maupun Smartphone Anda.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <section id="contact" class="section-dark contact-bg">
+        <div class="content-wrapper">
+            <div class="contact-container">
+                <div class="contact-info">
+                    <h2>Hubungi Kami</h2>
+                    <p>Tertarik untuk implementasi sistem ini di gedung Anda? Diskusikan kebutuhan Anda bersama kami.</p>
+                    <div class="c-item">
+                        <span>📍</span> Jl. PH.H. Mustofa No.23, Bandung
+                    </div>
+                    <div class="c-item">
+                        <span>📧</span> farhan.kamil@itenas.ac.id
+                    </div>
+                    <div class="c-item">
+                        <span>📞</span> +62 812-3456-7890
+                    </div>
+                    <div class="social-links">
+                        <a href="#">Instagram</a>
+                        <a href="#">LinkedIn</a>
+                        <a href="#">GitHub</a>
+                    </div>
+                </div>
+                <div class="contact-form-box">
+                    <form>
+                        <div class="form-group">
+                            <label>Nama Lengkap</label>
+                            <input type="text" placeholder="Masukkan nama Anda">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" placeholder="email@perusahaan.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Pesan</label>
+                            <textarea rows="4" placeholder="Ceritakan kebutuhan Anda..."></textarea>
+                        </div>
+                        <button type="button" class="btn-submit">Kirim Pesan</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="landing-footer">
+        <div class="footer-content">
+            <div class="f-col">
+                <h3>CoVis.AI</h3>
+                <p>Solusi masa depan untuk manajemen keramaian cerdas.</p>
+            </div>
+            <div class="f-col">
+                <h4>Tautan</h4>
+                <a href="#home">Beranda</a>
+                <a href="#about">Tentang</a>
+                <a href="#pricing">Harga</a>
+            </div>
+            <div class="f-col">
+                <h4>Legal</h4>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Farhan Kamil Hermansyah - ITENAS. All Rights Reserved.</p>
+        </div>
+    </footer>
+
 </div>
 
-<div class="features">
-    <div class="feature-card">
-        <div class="feature-icon">🤖</div>
-        <h3>AI-Powered Detection</h3>
-        <p>Machine Learning mendeteksi pola suhu tidak normal secara real-time</p>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon">👥</div>
-        <h3>Multi-Room Support</h3>
-        <p>Monitor hingga 10 orang per ruangan dengan 3 tipe ruangan berbeda</p>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon">⚠️</div>
-        <h3>Smart Alert System</h3>
-        <p>Peringatan otomatis ketika suhu melebihi batas aman</p>
-    </div>
-</div>
-
-<div class="info-section">
-    <h2>📋 Spesifikasi Sistem</h2>
-    <div class="specs-grid">
-        <div class="spec-item">
-            <h3>Kapasitas</h3>
-            <p>10 orang per ruangan</p>
-        </div>
-        <div class="spec-item">
-            <h3>Ruang Tersedia</h3>
-            <p>3 ruangan (Normal, Meeting, AC)</p>
-        </div>
-        <div class="spec-item">
-            <h3>Range Suhu Aman</h3>
-            <p>36.0°C - 37.5°C</p>
-        </div>
-        <div class="spec-item">
-            <h3>Monitoring</h3>
-            <p>Real-time dengan ML</p>
-        </div>
-    </div>
-</div>
-
-<script>
-function simulateData() {
-    fetch('/api/simulate-data')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('✅ Data simulasi berhasil dibuat!\n' + data.details.join('\n'));
-                window.location.href = '/dashboard';
-            }
-        });
-}
-</script>
 {% endblock %}
