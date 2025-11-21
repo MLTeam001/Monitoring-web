@@ -1,0 +1,632 @@
+{% extends "base.html" %}
+
+{% block title %}Manajemen Ruangan{% endblock %}
+
+{% block page_header %}Manajemen Ruangan{% endblock %}
+
+{% block content %}
+<div class="management-container">
+    <!-- Form Tambah Ruangan -->
+    <div class="card">
+        <div class="card-header">
+            <h3>➕ Tambah Ruangan Baru</h3>
+        </div>
+        <div class="card-body">
+            <form action="/add-room" method="POST" id="addRoomForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="roomName">Nama Ruangan *</label>
+                        <input type="text" id="roomName" name="name" required 
+                               placeholder="Contoh: Ruang Meeting A">
+                    </div>
+                    <div class="form-group">
+                        <label for="roomCapacity">Kapasitas *</label>
+                        <input type="number" id="roomCapacity" name="capacity" 
+                               value="10" min="1" max="1000" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="streamUrl">URL Stream Kamera</label>
+                        <input type="text" id="streamUrl" name="stream_url" 
+                               placeholder="http://192.168.1.xxx:5001/video_feed">
+                        <small class="form-help">Kosongkan jika tidak ada kamera</small>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <span id="submitText">➕ Tambah Ruangan</span>
+                    <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+                        <div class="spinner"></div>
+                        Menambahkan...
+                    </div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Daftar Ruangan -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📋 Daftar Ruangan ({{ rooms|length }})</h3>
+        </div>
+        <div class="card-body">
+            {% if rooms %}
+            <div class="rooms-list">
+                {% for room_name, room_data in rooms.items() %}
+                <div class="room-item-editable">
+                    <div class="room-header">
+                        <h4>{{ room_name }}</h4>
+                        <div class="room-actions">
+                            <button class="btn-icon edit-btn" onclick="editRoom('{{ room_name }}')" title="Edit Ruangan">✏️</button>
+                            <button class="btn-icon delete-btn" onclick="deleteRoom('{{ room_name }}')" title="Hapus Ruangan">🗑️</button>
+                        </div>
+                    </div>
+                    
+                    <div class="room-details">
+                        <div class="detail-item">
+                            <span class="label">Kapasitas:</span>
+                            <span class="value">{{ room_data.capacity }} orang</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Occupancy Saat Ini:</span>
+                            <span class="value">{{ room_data.inside_count }} orang</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Stream URL:</span>
+                            <span class="value url-display">{{ room_data.stream_url or 'Tidak ada' }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Status:</span>
+                            {% set occupancy_percentage = (room_data.inside_count / room_data.capacity * 100) if room_data.capacity > 0 else 0 %}
+                            {% if room_data.inside_count >= room_data.capacity %}
+                                <span class="badge badge-danger">PENUH</span>
+                            {% elif occupancy_percentage >= 80 %}
+                                <span class="badge badge-warning">RAMAI</span>
+                            {% else %}
+                                <span class="badge badge-normal">NORMAL</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress-container" style="margin-top: 10px;">
+                        <div class="progress-info">
+                            <span>Okupansi: {{ room_data.inside_count }}/{{ room_data.capacity }} ({{ "%.1f"|format(occupancy_percentage) }}%)</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="fill" style="width: {{ occupancy_percentage }}%; 
+                                background-color: {% if room_data.inside_count >= room_data.capacity %}#dc3545{% elif occupancy_percentage >= 80 %}#ffc107{% else %}#28a745{% endif %};">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🏢</div>
+                <h4>Belum ada ruangan</h4>
+                <p>Tambahkan ruangan pertama Anda menggunakan form di atas</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Ruangan -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ Edit Ruangan: <span id="modalRoomName"></span></h3>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="editRoomForm">
+                <input type="hidden" id="editRoomName" name="room_name">
+                <div class="form-group">
+                    <label for="editCapacity">Kapasitas *</label>
+                    <input type="number" id="editCapacity" name="capacity" min="1" max="1000" required>
+                </div>
+                <div class="form-group">
+                    <label for="editStreamUrl">URL Stream Kamera</label>
+                    <input type="text" id="editStreamUrl" name="stream_url" 
+                           placeholder="http://192.168.1.xxx:5001/video_feed">
+                    <small class="form-help">Kosongkan jika tidak ada kamera</small>
+                </div>
+                <div class="form-group">
+                    <label for="manualOccupancy">Set Occupancy Manual</label>
+                    <input type="number" id="manualOccupancy" name="manual_occupancy" 
+                           min="0" max="1000" placeholder="Jumlah orang saat ini">
+                    <small class="form-help">Kosongkan jika menggunakan hitungan otomatis</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+                    <button type="submit" class="btn btn-primary">💾 Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.management-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.card-header {
+    background: #f8f9fa;
+    padding: 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.card-header h3 {
+    margin: 0;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #555;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #4361ee;
+    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
+}
+
+.form-help {
+    color: #666;
+    font-size: 12px;
+    margin-top: 5px;
+    display: block;
+}
+
+.btn {
+    background: #4361ee;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn:hover {
+    background: #3a56d4;
+}
+
+.btn-secondary {
+    background: #6c757d;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.rooms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.room-item-editable {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    background: #fafafa;
+    transition: box-shadow 0.3s;
+}
+
+.room-item-editable:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.room-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.room-header h4 {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+}
+
+.room-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.btn-icon:hover {
+    background: #e9ecef;
+}
+
+.edit-btn:hover {
+    background: #e3f2fd;
+}
+
+.delete-btn:hover {
+    background: #ffebee;
+}
+
+.room-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.detail-item .label {
+    font-weight: 500;
+    color: #666;
+}
+
+.detail-item .value {
+    color: #333;
+    font-weight: 500;
+}
+
+.url-display {
+    font-family: monospace;
+    font-size: 12px;
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.badge-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.badge-normal {
+    background: #28a745;
+    color: white;
+}
+
+.progress-container {
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #666;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar .fill {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.empty-state h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.empty-state p {
+    margin: 0;
+    opacity: 0.7;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ffffff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    animation: modalSlideIn 0.3s;
+}
+
+@keyframes modalSlideIn {
+    from {transform: translateY(-50px); opacity: 0;}
+    to {transform: translateY(0); opacity: 1;}
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.close {
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.3s;
+}
+
+.close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .room-details {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        margin: 10% auto;
+        width: 95%;
+    }
+    
+    .room-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .room-actions {
+        align-self: flex-end;
+    }
+}
+</style>
+
+<script>
+// Form Submit dengan Loading State
+document.getElementById('addRoomForm').addEventListener('submit', function(e) {
+    // Tampilkan loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const submitText = document.getElementById('submitText');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    
+    submitText.style.display = 'none';
+    loadingSpinner.style.display = 'flex';
+    submitBtn.disabled = true;
+    
+    // Form akan di-submit secara normal dan redirect oleh browser
+});
+
+// Edit Ruangan
+function editRoom(roomName) {
+    const roomData = {{ rooms|tojson }};
+    const currentRoom = roomData[roomName];
+    
+    document.getElementById('editRoomName').value = roomName;
+    document.getElementById('modalRoomName').textContent = roomName;
+    document.getElementById('editCapacity').value = currentRoom.capacity;
+    document.getElementById('editStreamUrl').value = currentRoom.stream_url || '';
+    document.getElementById('manualOccupancy').value = currentRoom.inside_count;
+    
+    document.getElementById('editModal').style.display = 'block';
+}
+
+// Tutup Modal
+function closeModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+// Submit Edit Ruangan
+document.getElementById('editRoomForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const roomName = document.getElementById('editRoomName').value;
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    
+    // Hapus field room_name dari data yang dikirim
+    delete data.room_name;
+    
+    fetch(`/api/edit-room/${roomName}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Ruangan berhasil diupdate!');
+            location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat mengupdate ruangan');
+    });
+});
+
+// Hapus Ruangan
+function deleteRoom(roomName) {
+    if (confirm(`Apakah Anda yakin ingin menghapus ruangan "${roomName}"?\n\nTindakan ini tidak dapat dibatalkan.`)) {
+        fetch(`/api/delete-room/${roomName}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Ruangan berhasil dihapus!');
+                location.reload();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat menghapus ruangan');
+        });
+    }
+}
+
+// Tutup modal jika klik di luar
+window.onclick = function(event) {
+    const modal = document.getElementById('editModal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+
+// Tutup modal dengan ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}
