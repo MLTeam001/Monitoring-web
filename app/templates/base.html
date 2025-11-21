@@ -37,12 +37,19 @@
                     </a>
                 </li>
                 
-                <li class="menu-header">SYSTEM</li>
+                <li class="menu-header">MANAJEMEN</li>
+                <li>
+                    <a href="{{ url_for('main.room_management') }}" class="{% if request.endpoint == 'main.room_management' %}active{% endif %}">
+                        <span class="icon">🏢</span> Kelola Ruangan
+                    </a>
+                </li>
                 <li>
                     <a href="{{ url_for('main.reports') }}" class="{% if request.endpoint == 'main.reports' %}active{% endif %}">
                         <span class="icon">📑</span> Laporan Bulanan
                     </a>
                 </li>
+                
+                <li class="menu-header">SYSTEM</li>
                 <li>
                     <a href="#" onclick="alert('Pengaturan Sistem akan segera hadir!')">
                         <span class="icon">⚙️</span> Pengaturan
@@ -65,7 +72,9 @@
                     <p class="date-display" id="current-date">Senin, 1 Januari 2025</p>
                 </div>
                 <div class="header-right">
-                    <div class="notif-btn">🔔 <span class="badge-dot"></span></div>
+                    <div class="notif-btn" onclick="toggleNotifications()">
+                        🔔 <span class="badge-dot" id="notification-badge"></span>
+                    </div>
                     <div class="user-profile">
                         <div class="user-info">
                             <span class="name">Admin Petugas</span>
@@ -76,6 +85,32 @@
                 </div>
             </header>
 
+            <!-- Notifications Panel -->
+            <div class="notifications-panel" id="notifications-panel">
+                <div class="notifications-header">
+                    <h3>Notifikasi</h3>
+                    <button class="close-notif" onclick="toggleNotifications()">×</button>
+                </div>
+                <div class="notifications-list">
+                    <div class="notification-item info">
+                        <div class="notif-icon">ℹ️</div>
+                        <div class="notif-content">
+                            <div class="notif-title">Sistem Aktif</div>
+                            <div class="notif-message">Semua kamera berjalan normal</div>
+                            <div class="notif-time">Baru saja</div>
+                        </div>
+                    </div>
+                    <div class="notification-item warning">
+                        <div class="notif-icon">⚠️</div>
+                        <div class="notif-content">
+                            <div class="notif-title">Ruangan Ramai</div>
+                            <div class="notif-message">Ruang A mencapai 85% kapasitas</div>
+                            <div class="notif-time">5 menit lalu</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="content-body">
                 {% block content %}{% endblock %}
             </div>
@@ -85,9 +120,196 @@
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     <script>
-        // Script kecil untuk tanggal di header
+        // Script untuk tanggal di header
         const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         document.getElementById('current-date').innerText = new Date().toLocaleDateString('id-ID', dateOptions);
+
+        // Script untuk notifikasi
+        function toggleNotifications() {
+            const panel = document.getElementById('notifications-panel');
+            const badge = document.getElementById('notification-badge');
+            
+            if (panel.style.display === 'block') {
+                panel.style.display = 'none';
+                badge.style.display = 'none';
+            } else {
+                panel.style.display = 'block';
+                badge.style.display = 'none'; // Sembunyikan badge saat notifikasi dibuka
+            }
+        }
+
+        // Tutup notifikasi ketika klik di luar
+        document.addEventListener('click', function(event) {
+            const panel = document.getElementById('notifications-panel');
+            const notifBtn = document.querySelector('.notif-btn');
+            
+            if (panel.style.display === 'block' && 
+                !panel.contains(event.target) && 
+                !notifBtn.contains(event.target)) {
+                panel.style.display = 'none';
+            }
+        });
+
+        // Update badge notifikasi berdasarkan status ruangan
+        function updateNotificationBadge() {
+            const badge = document.getElementById('notification-badge');
+            // Simulasi: tampilkan badge jika ada ruangan yang penuh/ramai
+            // Di implementasi nyata, ini akan fetch data dari API
+            const hasWarning = Math.random() > 0.7; // Simulasi random
+            badge.style.display = hasWarning ? 'block' : 'none';
+        }
+
+        // Cek status notifikasi setiap 30 detik
+        setInterval(updateNotificationBadge, 30000);
+        updateNotificationBadge(); // Jalankan pertama kali
     </script>
+
+    <style>
+        /* Styles untuk Notifications Panel */
+        .notifications-panel {
+            display: none;
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 350px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border: 1px solid #e1e5e9;
+        }
+
+        .notifications-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e1e5e9;
+            background: #f8f9fa;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .notifications-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .close-notif {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .close-notif:hover {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .notifications-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            display: flex;
+            padding: 15px 20px;
+            border-bottom: 1px solid #f1f3f4;
+            gap: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .notification-item:hover {
+            background: #f8f9fa;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-item.info {
+            border-left: 4px solid #4361ee;
+        }
+
+        .notification-item.warning {
+            border-left: 4px solid #ffc107;
+        }
+
+        .notification-item.danger {
+            border-left: 4px solid #dc3545;
+        }
+
+        .notif-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .notif-content {
+            flex: 1;
+        }
+
+        .notif-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .notif-message {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+
+        .notif-time {
+            color: #999;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* Badge notifikasi */
+        .badge-dot {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 8px;
+            height: 8px;
+            background: #dc3545;
+            border-radius: 50%;
+            display: none;
+        }
+
+        .notif-btn {
+            position: relative;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .notif-btn:hover {
+            background: #f8f9fa;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .notifications-panel {
+                right: 10px;
+                left: 10px;
+                width: auto;
+            }
+        }
+    </style>
 </body>
 </html>

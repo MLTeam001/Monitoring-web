@@ -1,0 +1,45 @@
+[33mcommit f3b57204a78718c56de93c7af98cb9a916d9ab85[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfitur-baru[m[33m, [m[1;31morigin/fitur-baru[m[33m)[m
+Merge: ba87896 e6fd090
+Author: qwinza <farisahmad1210@gmail.com>
+Date:   Thu Nov 20 16:27:05 2025 +0700
+
+    Merge branch 'main' of https://github.com/MLTeam001/Monitoring-web into fitur-baru
+
+[33mcommit ba878969dec65a49c019846af995ad8c1ea458ef[m
+Author: qwinza <farisahmad1210@gmail.com>
+Date:   Thu Nov 20 15:54:26 2025 +0700
+
+    fix
+
+[33mcommit a737c2ffabf2e1902e65b57caea5fdac8d775f31[m
+Author: Farhan kamil Hermansyah <affschannel@gmail.com>
+Date:   Thu Nov 20 14:14:02 2025 +0700
+
+    Menambahkan fitur baru
+
+[33mcommit e6fd09053f4bd805084f0cd0f85885924b5828a6[m[33m ([m[1;32mmain[m[33m)[m
+Merge: 8fc85d4 7f145a0
+Author: Farhan Kamil Hermansyah <158826476+Farmil23@users.noreply.github.com>
+Date:   Tue Nov 18 22:07:42 2025 +0700
+
+    Merge pull request #1 from MLTeam001/produktif
+    
+    Fix Monitoring API and Realtime Dashboard
+
+[33mcommit 85912b86d26bf3ec1831742ab2d131912a9d4f9c[m
+Author: Farhan kamil Hermansyah <affschannel@gmail.com>
+Date:   Tue Nov 18 22:04:00 2025 +0700
+
+    Fix monitoring API and realtime dashboard logic
+
+[33mcommit 7f145a0a713a6fac2f12815f03906bb61bfad544[m
+Author: Farhan Kamil Hermansyah <158826476+Farmil23@users.noreply.github.com>
+Date:   Tue Nov 18 22:02:33 2025 +0700
+
+    Add files via upload
+
+[33mcommit 8fc85d4cd9f0cc0e56c561bebdeea55e21633b52[m
+Author: qwinza <farisahmad1210@gmail.com>
+Date:   Mon Nov 17 20:24:21 2025 +0700
+
+    setup project team1
