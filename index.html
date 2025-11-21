@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriDrone Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* --- Reset & Base Styles --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #1a1b20; /* Warna latar belakang gelap */
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            background-color: #22252a;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid #333;
+            justify-content: space-between;
+        }
+
+        .brand {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #a0e0a0; /* Aksen hijau muda */
+        }
+
+        .nav-icons i {
+            color: #888;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        /* --- Layout Utama --- */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden; /* Mencegah scroll di body */
+        }
+
+        /* --- Sidebar Kiri --- */
+        .sidebar {
+            width: 320px;
+            background-color: #16171b;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border-right: 1px solid #333;
+            overflow-y: auto;
+        }
+
+        /* Kartu Statistik */
+        .card {
+            background-color: #1f2228;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #ccc;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background-color: #333;
+            height: 10px;
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background-color: #28a745; /* Hijau */
+            height: 100%;
+            width: 55%; /* Sesuai gambar */
+        }
+
+        /* Kamera Feed */
+        .camera-feed {
+            width: 100%;
+            height: 180px;
+            background-color: #000;
+            border: 1px solid #444;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        .camera-feed img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.8;
+        }
+        .overlay-text {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 10px;
+            color: #0f0;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 5px;
+        }
+
+        /* Tombol Kontrol */
+        .control-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-arm { background-color: transparent; color: #28a745; border-color: #28a745; }
+        .btn-arm:hover { background-color: #28a745; color: #fff; }
+
+        .btn-disarm { background-color: transparent; color: #dc3545; border-color: #dc3545; }
+        .btn-disarm:hover { background-color: #dc3545; color: #fff; }
+
+        .btn-rtl { background-color: #343a40; color: #ddd; border-color: #495057; }
+        .btn-auto { background-color: #343a40; color: #ddd; border-color: #495057; }
+
+        /* --- Konten Kanan (Peta & Log) --- */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Peta */
+        .map-container {
+            flex: 3; /* Mengambil 3 bagian tinggi */
+            background-image: url('https://mt1.google.com/vt/lyrs=s&x=131&y=66&z=8'); /* Placeholder Satelit */
+            background-color: #0a0a0a;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        /* Simulasi Marker & Drone di Peta (CSS Only untuk Demo) */
+        .drone-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            color: #fff;
+            text-shadow: 0 0 10px #000;
+        }
+        .marker {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .marker i { font-size: 24px; }
+        .marker span { 
+            background: rgba(0,0,0,0.7); 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            font-size: 11px; 
+            margin-top: 4px;
+            white-space: nowrap;
+        }
+        .marker-humus { color: #28a745; top: 30%; left: 45%; }
+        .marker-batu { color: #dc3545; top: 40%; right: 30%; }
+
+        /* Log Terminal */
+        .log-console {
+            flex: 1; /* Mengambil 1 bagian tinggi */
+            background-color: #000;
+            border-top: 2px solid #333;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            color: #ccc;
+            overflow-y: auto;
+            max-height: 200px;
+        }
+        .log-line { margin-bottom: 4px; }
+        .log-time { color: #888; }
+        .log-info { color: #fff; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">
+            <i class="fa-solid fa-drone"></i> Dashboard
+        </div>
+        <div class="nav-icons">
+            <i class="fa-solid fa-right-from-bracket"></i>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        
+        <aside class="sidebar">
+            
+            <div class="card">
+                <div class="stat-label">Bibit Keluar</div>
+                <div class="stat-value">45 Butir</div>
+            </div>
+
+            <div class="card">
+                <div class="stat-label">Sisa Muatan: 55%</div>
+                <div class="progress-container">
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+
+            <div class="stat-label" style="margin-top: 10px;">
+                Kualitas Tanah: <span style="color: #28a745;">[HUMUS DETECTED]</span>
+            </div>
+
+            <div class="camera-feed">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/9/9a/Soil_surface.jpg" alt="Soil Feed">
+                <div class="overlay-text">REC [1080p]</div>
+            </div>
+
+            <div class="controls">
+                <button class="control-btn btn-arm">[ARM]</button>
+                <button class="control-btn btn-disarm">[DISARM]</button>
+                <button class="control-btn btn-rtl">[RTL]</button>
+                <button class="control-btn btn-auto">[AUTO]</button>
+            </div>
+        </aside>
+
+        <div class="content-area">
+            
+            <div class="map-container">
+                <div class="drone-icon">
+                    <i class="fa-solid fa-plane-up"></i>
+                </div>
+
+                <div class="marker marker-humus">
+                    <i class="fa-solid fa-location-dot"></i>
+                    <span>(O) [Humus] Lat: -6.89 | Conf: 92%</span>
+                </div>
+
+                <div class="marker marker-batu">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                    <span>(X) [Batu]</span>
+                </div>
+
+                <div style="position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 5px;">
+                    <button style="padding: 5px 10px; background: white; color: black; border: none; font-weight: bold;">+</button>
+                    <button style="padding: 5px 10px; background: white; color: black; border: none; font-weight: bold;">-</button>
+                </div>
+            </div>
+
+            <div class="log-console">
+                <div class="log-line"><span class="log-time">[10:05:20]</span> <span class="log-info">System Initialized. Connected to Drone.</span></div>
+                <div class="log-line"><span class="log-time">[10:05:21]</span> <span class="log-info">GPS Signal Locked (12 Satellites).</span></div>
+                <div class="log-line"><span class="log-time">[10:05:23]</span> <span class="log-info">Seed Dropped at Lat -6.89, Lon 107.61 (Confidence: 92%)</span></div>
+                <div class="log-line"><span class="log-time">[10:05:23]</span> <span class="log-info">Seed Dropped at Lat -6.89, Lon 107.61 (Confidence: 92%)</span></div>
+                <div class="log-line"><span class="log-time">[10:05:23]</span> <span class="log-info">Seed Dropped at Lat -6.89, Lon 107.61 (Confidence: 92%)</span></div>
+                <div class="log-line"><span class="log-time">[10:05:23]</span> <span class="log-info">Seed Dropped at Lat -6.89, Lon 107.61 (Confidence: 92%)</span></div>
+                <div class="log-line"><span class="log-time">[10:05:23]</span> <span class="log-info">Object Detected: STONE [Action: Avoid]</span></div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
