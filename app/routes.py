@@ -5,10 +5,36 @@ import random
 bp = Blueprint('main', __name__)
 
 # --- KONFIGURASI RUANGAN ---
+# Tambahkan 'stream_url' untuk setiap ruangan.
+# Ganti IP (misal 192.168.1.105) sesuai dengan IP Raspberry Pi Anda.
 rooms_data = {
-    'Ruang A': { 'capacity': 10, 'door_in': 0, 'door_out': 0, 'inside_count': 0, 'status': 'available', 'last_update': None },
-    'Ruang B': { 'capacity': 8, 'door_in': 0, 'door_out': 0, 'inside_count': 0, 'status': 'available', 'last_update': None },
-    'Ruang C': { 'capacity': 12, 'door_in': 0, 'door_out': 0, 'inside_count': 0, 'status': 'available', 'last_update': None }
+    'Ruang A': { 
+        'capacity': 10, 
+        'stream_url': 'https://grvx4pf8-5001.asse.devtunnels.ms/video_feed',  # <--- URL Stream Raspi
+        'door_in': 0, 
+        'door_out': 0, 
+        'inside_count': 0, 
+        'status': 'available', 
+        'last_update': None 
+    },
+    'Ruang B': { 
+        'capacity': 8, 
+        'stream_url': None, # Tidak ada kamera
+        'door_in': 0, 
+        'door_out': 0, 
+        'inside_count': 0, 
+        'status': 'available', 
+        'last_update': None 
+    },
+    'Ruang C': { 
+        'capacity': 12, 
+        'stream_url': None, 
+        'door_in': 0, 
+        'door_out': 0, 
+        'inside_count': 0, 
+        'status': 'available', 
+        'last_update': None 
+    }
 }
 
 # --- HELPER: GENERATE DUMMY REPORT DATA ---
@@ -80,6 +106,7 @@ def dashboard():
 
         room_stats.append({
             'name': room_name,
+            'stream_url': data.get('stream_url'), # Update dashboard juga agar konsisten
             'occupancy': current_occupancy,
             'door_net': door_net,
             'inside_val': data['inside_count'],
@@ -94,7 +121,40 @@ def dashboard():
 def monitoring():
     room_name = request.args.get('room', 'Ruang A')
     room_data = rooms_data.get(room_name, rooms_data['Ruang A'])
-    return render_template('monitoring.html', room_name=room_name, room_data=room_data, rooms_list=list(rooms_data.keys()))
+    
+    total_people = 0
+    room_stats = []
+    
+    for room_name_iter, data in rooms_data.items():
+        door_net = max(0, data['door_in'] - data['door_out'])
+        current_occupancy = data['inside_count'] if data['inside_count'] > 0 else door_net
+        total_people += current_occupancy
+        occupancy_pct = (current_occupancy / data['capacity']) * 100
+        
+        if current_occupancy >= data['capacity']:
+            status = 'full'
+        elif occupancy_pct >= 80:
+            status = 'warning'
+        else:
+            status = 'normal'
+
+        # Memasukkan data ke list stats
+        room_stats.append({
+            'name': room_name_iter,
+            'stream_url': data.get('stream_url'), # <--- PENTING: Kirim URL Stream ke Template
+            'occupancy': current_occupancy,
+            'door_net': door_net,
+            'inside_val': data['inside_count'],
+            'capacity': data['capacity'],
+            'status': status,
+            'percentage': int(occupancy_pct)
+        })
+        
+    return render_template('monitoring.html', 
+                         room_name=room_name, 
+                         room_data=room_data, 
+                         rooms_list=list(rooms_data.keys()), 
+                         room_stats=room_stats)
 
 @bp.route('/reports')
 def reports():
@@ -118,9 +178,15 @@ def get_room_status(room_name):
         status = 'normal'; message = "✅ Tersedia"
 
     return jsonify({
-        'room_name': room_name, 'occupancy': occupancy, 'capacity': room_data['capacity'],
-        'status': status, 'message': message, 'door_in': room_data['door_in'],
-        'door_out': room_data['door_out'], 'inside_count': room_data['inside_count']
+        'room_name': room_name, 
+        'occupancy': occupancy, 
+        'capacity': room_data['capacity'],
+        'status': status, 
+        'message': message, 
+        'door_in': room_data['door_in'],
+        'door_out': room_data['door_out'], 
+        'inside_count': room_data['inside_count'],
+        'stream_url': room_data.get('stream_url') # Opsional: kirim via API juga
     })
 
 @bp.route('/api/update-camera', methods=['POST'])
