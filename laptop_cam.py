@@ -20,7 +20,13 @@ print("⏳ Loading AI Model... (Akan sedikit berat di awal)")
 model = YOLO('yolov8n.pt') 
 
 # Buka Webcam Laptop (Index 0)
-cap = cv2.VideoCapture(0)
+#cap = cv2.VideoCapture(0)
+#menerima vidio dari raspberry pi
+IP_RASPBERRY = "10.10.10.4" 
+URL_STREAM = f"http://{IP_RASPBERRY}:5001/stream"
+
+print(f"📡 Mencoba terhubung ke kamera Raspberry Pi di {URL_STREAM} ...")
+cap = cv2.VideoCapture(URL_STREAM)
 
 # Variabel Counter
 entered_ids = set()
