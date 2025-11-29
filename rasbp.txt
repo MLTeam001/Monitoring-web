@@ -1,0 +1,5 @@
+sudo apt update
+sudo apt install ffmpeg -y 
+ffmpeg -f v4l2 -input_format mjpeg -video_size 640x480 -framerate 30 -i /dev/video0 -c:v libx264 -preset ultrafast -tune zerolatency -b:v 500k -f mpegts udp://10.10.10.5:1234?pkt_size=1316
+# Perhatikan saya ubah -framerate jadi 15
+ffmpeg -f v4l2 -input_format mjpeg -video_size 640x480 -framerate 15 -i /dev/video0 -c:v libx264 -preset ultrafast -tune zerolatency -b:v 400k -f mpegts udp://10.10.10.5:1234?pkt_size=1316
