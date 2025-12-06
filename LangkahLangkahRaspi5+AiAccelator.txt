@@ -1,0 +1,5 @@
+install drive dan libary ai accelator
+https://www.raspberrypi.com/documentation/computers/ai.html#getting-started
+terus ikuti langkah langkah di github ini
+https://github.com/hailo-ai/hailo-rpi5-examples
+https://github.com/hailo-ai/hailo-apps-infra
