@@ -26,7 +26,7 @@ def load_rooms_data():
         default_rooms = {
             'Ruang A': { 
                 'capacity': 10, 
-                'stream_url': 'http://192.168.1.105:5001/video_feed',
+                'stream_url': 'http://192.168.1.182:5001/video_feed',
                 'door_in': 0, 
                 'door_out': 0, 
                 'inside_count': 0, 
@@ -234,7 +234,10 @@ def get_room_status(room_name):
     door_out = int(room_data.get('door_out', 0))
     inside_count = int(room_data.get('inside_count', 0))
     
+    # Hitung selisih bersih (Matematika Pintu)
     door_net = max(0, door_in - door_out)
+    
+    # Logika status utama
     occupancy = inside_count if inside_count > 0 else door_net
     
     if occupancy >= capacity:
@@ -252,13 +255,16 @@ def get_room_status(room_name):
         'occupancy': occupancy, 
         'capacity': capacity,
         'status': status, 
-        'message': message, 
+        'message': message,
+        
+        # ✅ TAMBAHAN PENTING: Kirim hasil hitungan pintu ke web
+        'door_net': door_net,  
+        
         'door_in': door_in,
         'door_out': door_out, 
         'inside_count': inside_count,
         'stream_url': room_data.get('stream_url')
     })
-
 @bp.route('/api/update-camera', methods=['POST'])
 def update_camera():
     data = request.get_json()
@@ -268,12 +274,23 @@ def update_camera():
         room['last_update'] = datetime.now().strftime('%H:%M:%S')
         
         if data.get('type') == 'door':
+            # Update data pintu
             room['door_in'] = int(data.get('total_in', 0))
             room['door_out'] = int(data.get('total_out', 0))
+            
+            # --- BAGIAN PENTING ---
+            # Ambil 'count' langsung dari kiriman Raspberry Pi (Objek Visual)
+            # Jangan dihitung manual (In - Out) di sini agar sesuai dengan kotak hijau
+            if 'count' in data:
+                room['inside_count'] = int(data['count'])
+            else:
+                # Fallback hanya jika tidak ada data count
+                room['inside_count'] = max(0, room['door_in'] - room['door_out'])
+            # ----------------------
+            
         elif data.get('type') == 'inside':
             room['inside_count'] = int(data.get('count', 0))
         
-        # Simpan perubahan ke file
         save_rooms_data(rooms_data)
         return jsonify({'status': 'success'})
     return jsonify({'status': 'error'}), 404

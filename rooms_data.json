@@ -1,24 +1,15 @@
 {
     "Ruang A": {
         "capacity": 10,
-        "stream_url": "http://192.168.1.105:5001/video_feed",
-        "door_in": 0,
-        "door_out": 0,
-        "inside_count": 0,
+        "stream_url": "http://192.168.1.182:5001/video_feed",
+        "door_in": 27,
+        "door_out": 23,
+        "inside_count": 3,
         "status": "available",
-        "last_update": "00:30:17"
+        "last_update": "12:35:04"
     },
     "Ruang B": {
-        "capacity": 10,
-        "stream_url": "",
-        "door_in": 0,
-        "door_out": 0,
-        "inside_count": 0,
-        "status": "available",
-        "last_update": null
-    },
-    "Ruang C": {
-        "capacity": 9,
+        "capacity": 8,
         "stream_url": null,
         "door_in": 0,
         "door_out": 0,
@@ -26,7 +17,7 @@
         "status": "available",
         "last_update": null
     },
-    "Gudang": {
+    "Ruang C": {
         "capacity": 12,
         "stream_url": null,
         "door_in": 0,
