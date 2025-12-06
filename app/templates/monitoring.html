@@ -37,27 +37,22 @@
                 <div class="cctv-frame">
                     <div class="cctv-screen" style="position: relative; background: #000; overflow: hidden;">
                         
-                        <img src="http://127.0.0.1:5001/video_feed" 
+                        <img src="http://192.168.1.182:5001/video_feed"
                              class="cctv-video"
                              alt="Live Stream"
-                             onerror="this.style.display='none'; document.getElementById('error-msg').style.display='flex';">
+                             onerror="this.style.display='none'; document.getElementById('error-msg').style.display='flex';"> // ganti ip kalau beda jaringan
                         
                         <div id="error-msg" class="no-signal-text" style="display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 0; align-items: center; justify-content: center; flex-direction: column; color: white;">
                             <div class="icon-cam">🚫</div>
                             <p>KONEKSI KE PORT 5001 GAGAL</p>
-                            <small>Pastikan laptop_cam.py berjalan</small>
+                            <small>Pastikan raspi sudah dijalankan</small>
                         </div>
                 
                         <div class="cctv-overlay" style="z-index: 10;">
                             <div class="rec-indicator">🔴 LIVE</div>
                             <div class="cam-name">{{ room.name|upper }}</div>
                             <div class="cam-time" id="clock-{{ loop.index }}">--:--:--</div>
-                            <div class="cam-stats">
-                                In/Out: <span id="overlay-door-net">{{ room.door_net }}</span> | 
-                                Objek: <span id="overlay-inside">{{ room.inside_val }}</span>
-                            </div>
                         </div>
-                        
                     </div>
                     <div class="cctv-footer">
                         <span class="status-dot blink-green"></span>
@@ -112,23 +107,29 @@
         }
     }
     
-    function loadData() {
+  function loadData() {
         fetch(`/api/room-status/${currentRoom}`)
             .then(response => response.json())
             .then(data => {
                 // 1. Update Angka di Kotak Bawah
-                document.getElementById('val-door-net').innerText = data.occupancy; 
+                // --- PERUBAHAN PENTING DI SINI ---
+                // Gunakan door_net agar murni hasil matematika (Masuk - Keluar)
+                document.getElementById('val-door-net').innerText = data.door_net; 
+                // ---------------------------------
+                
                 document.getElementById('val-inside').innerText = data.inside_count;
                 document.getElementById('val-in').innerText = data.door_in;
                 document.getElementById('val-out').innerText = data.door_out;
 
-                // Update Angka di Overlay Video (Opsional, jika ada ID-nya)
+                // Update Angka di Overlay Video (Jika ada)
                 if(document.getElementById('overlay-door-net')) {
-                    document.getElementById('overlay-door-net').innerText = data.occupancy;
+                    // Overlay juga gunakan door_net agar konsisten dengan kotak biru
+                    document.getElementById('overlay-door-net').innerText = data.door_net;
                     document.getElementById('overlay-inside').innerText = data.inside_count;
                 }
 
                 // 2. Update Status Besar (Aman/Penuh)
+                // BAGIAN INI JANGAN DIUBAH (Tetap pakai occupancy agar statusnya cerdas)
                 const statusText = document.getElementById('status-text');
                 const statusCard = document.getElementById('status-card');
                 
