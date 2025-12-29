@@ -2,93 +2,161 @@
 
 {% block title %}Monitoring - {{ room_name }}{% endblock %}
 
+{% block page_header %}Live Monitoring{% endblock %}
+
 {% block content %}
-<div class="monitoring-container">
-    <div class="stats-bar" style="margin-bottom: 20px;">
-        <div class="mini-stat">
-            <div class="icon">📍</div>
-            <div>
-                <span class="label">Lokasi</span>
+<div class="monitoring-page">
+    <!-- Header Stats & Actions -->
+    <div class="monitor-header">
+        <div class="location-pill">
+            <span class="icon">📍</span>
+            <div class="pill-content">
+                <span class="label">Lokasi Saat Ini</span>
                 <span class="value">{{ room_name }}</span>
             </div>
         </div>
         
-        <div class="header-actions" style="display: flex; gap: 10px;">
-            <a href="{{ url_for('main.reports') }}" class="btn btn-sm btn-primary" style="text-decoration: none; display:flex; align-items:center;">
-                📊 Lihat Laporan
+        <div class="header-controls">
+            <a href="{{ url_for('main.reports') }}" class="btn-report">
+                <span class="icon">📊</span> Laporan
             </a>
-
-            <select id="roomSelect" onchange="changeRoom(this.value)" class="form-select">
-                {% for room in rooms_list %}
-                <option value="{{ room }}" {% if room == room_name %}selected{% endif %}>{{ room }}</option>
-                {% endfor %}
-            </select>
-            <button onclick="clearRoom()" class="btn btn-sm btn-outline">🗑️ Reset Data</button>
+            <div class="select-wrapper">
+                <select id="roomSelect" onchange="changeRoom(this.value)" class="monitor-select">
+                    {% for room in rooms_list %}
+                    <option value="{{ room }}" {% if room == room_name %}selected{% endif %}>{{ room }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button onclick="clearRoom()" class="btn-reset" title="Reset Data Ruangan">
+                <span class="icon">🗑️</span> Reset
+            </button>
         </div>
     </div>
 
-    <div class="status-section">
-        <div class="cctv-section">
-            <h2 class="section-title" style="text-align: center;">📊 Real-time Counter</h2>
-            
-            <div class="cctv-grid">
-                {% for room in room_stats %}
-                {% if room.name == room_name%}
-                <div class="cctv-frame">
-                    <div class="cctv-screen" style="position: relative; background: #000; overflow: hidden;">
-                        
-                        <img src="http://192.168.1.182:5001/video_feed"
-                             class="cctv-video"
-                             alt="Live Stream"
-                             onerror="this.style.display='none'; document.getElementById('error-msg').style.display='flex';"> // ganti ip kalau beda jaringan
-                        
-                        <div id="error-msg" class="no-signal-text" style="display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 0; align-items: center; justify-content: center; flex-direction: column; color: white;">
-                            <div class="icon-cam">🚫</div>
-                            <p>KONEKSI KE PORT 5001 GAGAL</p>
-                            <small>Pastikan raspi sudah dijalankan</small>
-                        </div>
+    <div class="monitor-grid">
+        <!-- Live Stream Section -->
+        <div class="video-card">
+            <div class="video-container">
+                <img src="{{ room_data.stream_url if room_data.stream_url else '' }}"
+                     class="live-feed"
+                     alt="Live Stream"
+                     {% if not room_data.stream_url %}style="display: none;"{% endif %}
+                     onerror="handleVideoError(this)">
                 
-                        <div class="cctv-overlay" style="z-index: 10;">
-                            <div class="rec-indicator">🔴 LIVE</div>
-                            <div class="cam-name">{{ room.name|upper }}</div>
-                            <div class="cam-time" id="clock-{{ loop.index }}">--:--:--</div>
+                <div id="video-error" class="video-overlay error-state" {% if not room_data.stream_url %}style="display: flex;"{% else %}style="display: none;"{% endif %}>
+                    <div class="error-icon">📡</div>
+                    <h3>Koneksi Terputus</h3>
+                    <p>Gagal terhubung ke kamera</p>
+                    <small>Pastikan IP kamera sudah dikonfigurasi dengan benar</small>
+                </div>
+        
+                <div class="video-overlay live-info">
+                    <div class="badge-live"><span class="pulse-dot"></span> LIVE</div>
+                    <div class="room-tag">{{ room_name|upper }}</div>
+                    <div class="time-stamp" id="realtime-clock">--:--:--</div>
+                </div>
+            </div>
+            <div class="video-footer">
+                <div class="connection-status">
+                    <span class="status-indicator online"></span>
+                    Sistem Operasional
+                </div>
+            </div>
+
+            <!-- Log section removed from here -->
+        </div>
+
+        <!-- Trend Chart Moved HERE (Below Camera) -->
+        <div class="card trend-card">
+            <div class="card-header">
+                <h3>Tren Okupansi (15 Menit Terakhir)</h3>
+                <span class="icon-bg">📈</span>
+            </div>
+            <div class="chart-container" style="position: relative; height:200px; width:100%">
+                <canvas id="occupancyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+        <!-- Metrics Section -->
+        <div class="metrics-panel">
+            <!-- Main Occupancy Card -->
+            <div id="status-card" class="card status-card">
+                <div class="card-header">
+                    <h3>Status Okupansi</h3>
+                    <span class="icon-bg">👥</span>
+                </div>
+                <div class="status-body">
+                    <h1 id="status-text">CONNECTING...</h1>
+                    <div class="occupancy-progress">
+                        <div class="progress-info">
+                            <span id="occupancy-text">0 / 0 Orang</span>
+                            <span id="percent-text">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
                         </div>
                     </div>
-                    <div class="cctv-footer">
-                        <span class="status-dot blink-green"></span>
-                        Koneksi Stabil
-                    </div>
                 </div>
-                {% endif %}
-                {% endfor %}
             </div>
 
-            <div id="status-card" class="metric-box" style="text-align: center; padding: 30px; margin-bottom: 20px; background: #f8f9fa; border-radius: 10px;">
-                <h1 id="status-text" style="font-size: 2.5rem; margin: 0;">MEMUAT...</h1>
-                <p id="occupancy-text" style="color: #666; font-size: 1.2rem;">0 / 0 Orang</p>
-            </div>
-
-            <div class="counter-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                
-                <div class="metric-box" style="background: #e3f2fd; border: 1px solid #bbdefb; padding: 20px; text-align: center; border-radius: 8px;">
-                    <span class="m-label" style="font-size: 1rem;">🚪 Hitungan Pintu (Net)</span>
-                    <div style="font-size: 3rem; font-weight: bold; color: #0d47a1;" id="val-door-net">0</div>
-                    <div style="display: flex; justify-content: space-around; margin-top: 10px; color: #666;">
-                        <span>Masuk: <b id="val-in">0</b></span>
-                        <span>Keluar: <b id="val-out">0</b></span>
+            <!-- Mini Metrics Grid -->
+            <div class="mini-grid">
+                <div class="card metric-card door-net">
+                    <div class="metric-icon">�</div>
+                    <div class="metric-data">
+                        <span class="m-label">Total di Ruangan (Net)</span>
+                        <div class="m-value" id="val-door-net">0</div>
+                    </div>
+                    <div class="m-details">
+                        <span>IN: <b id="val-in">0</b></span>
+                        <span class="divider">|</span>
+                        <span>OUT: <b id="val-out">0</b></span>
                     </div>
                 </div>
 
-                <div class="metric-box" style="background: #f3e5f5; border: 1px solid #e1bee7; padding: 20px; text-align: center; border-radius: 8px;">
-                    <span class="m-label" style="font-size: 1rem;">📷 Deteksi Objek</span>
-                    <div style="font-size: 3rem; font-weight: bold; color: #4a148c;" id="val-inside">0</div>
-                    <small style="color: #666;">Orang terdeteksi di dalam frame</small>
+                <div class="card metric-card object-detect">
+                    <div class="metric-icon">👁️</div>
+                    <div class="metric-data">
+                        <span class="m-label">Deteksi Saat Ini</span>
+                        <div class="m-value" id="val-inside">0</div>
+                    </div>
+                    <p class="m-hint">Orang terdeteksi sensor</p>
                 </div>
             </div>
-            
+
+            <!-- Trend Chart removed from here -->
+
+            <!-- Restored Activity Log in Metrics Panel -->
+            <div class="card log-card">
+                <div class="card-header mini" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin:0; font-size: 16px; color: var(--monitor-text-muted); text-transform: uppercase; letter-spacing: 1px;">Log Aktivitas</h3>
+                    <span style="font-size: 20px;">📋</span>
+                </div>
+                <div class="log-table-wrapper">
+                    <table class="log-table">
+                        <thead>
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Kejadian</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activity-log-body">
+                            <tr class="empty-log">
+                                <td colspan="3" style="text-align:center; padding: 20px; color: var(--monitor-text-muted);">Menunggu aktivitas...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/monitoring.css') }}">
 
 <script>
     const currentRoom = '{{ room_name }}';
@@ -98,82 +166,177 @@
     }
 
     function clearRoom() {
-        if (confirm(`Reset data ruangan ${currentRoom}?`)) {
+        if (confirm(`Reset data untuk ruangan ${currentRoom}? Semua hitungan akan kembali ke 0.`)) {
             fetch(`/api/clear-room/${currentRoom}`, { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) location.reload();
+                    if (data.success) {
+                        alert('Data berhasil di-reset');
+                        location.reload();
+                    }
                 });
         }
     }
+
+    function handleVideoError(img) {
+        img.style.display = 'none';
+        const errorOverlay = document.getElementById('video-error');
+        const liveOverlay = document.querySelector('.live-info');
+        if(errorOverlay) errorOverlay.style.display = 'flex';
+        if(liveOverlay) liveOverlay.style.display = 'none';
+        
+        const statusIndicator = document.querySelector('.status-indicator');
+        if(statusIndicator) {
+            statusIndicator.classList.remove('online');
+            statusIndicator.style.backgroundColor = '#dc2626';
+        }
+    }
     
-  function loadData() {
+    function loadData() {
         fetch(`/api/room-status/${currentRoom}`)
             .then(response => response.json())
             .then(data => {
-                // 1. Update Angka di Kotak Bawah
-                // --- PERUBAHAN PENTING DI SINI ---
-                // Gunakan door_net agar murni hasil matematika (Masuk - Keluar)
-                document.getElementById('val-door-net').innerText = data.door_net; 
-                // ---------------------------------
-                
-                document.getElementById('val-inside').innerText = data.inside_count;
-                document.getElementById('val-in').innerText = data.door_in;
-                document.getElementById('val-out').innerText = data.door_out;
+                // Update metrics
+                const elNet = document.getElementById('val-door-net');
+                const elInside = document.getElementById('val-inside');
+                const elIn = document.getElementById('val-in');
+                const elOut = document.getElementById('val-out');
 
-                // Update Angka di Overlay Video (Jika ada)
-                if(document.getElementById('overlay-door-net')) {
-                    // Overlay juga gunakan door_net agar konsisten dengan kotak biru
-                    document.getElementById('overlay-door-net').innerText = data.door_net;
-                    document.getElementById('overlay-inside').innerText = data.inside_count;
-                }
+                if(elNet) elNet.innerText = data.door_net; 
+                if(elInside) elInside.innerText = data.inside_count;
+                if(elIn) elIn.innerText = data.door_in;
+                if(elOut) elOut.innerText = data.door_out;
 
-                // 2. Update Status Besar (Aman/Penuh)
-                // BAGIAN INI JANGAN DIUBAH (Tetap pakai occupancy agar statusnya cerdas)
+                // Update main status
                 const statusText = document.getElementById('status-text');
                 const statusCard = document.getElementById('status-card');
+                const progressFill = document.getElementById('progress-fill');
+                const occText = document.getElementById('occupancy-text');
+                const perText = document.getElementById('percent-text');
                 
-                statusText.innerText = data.message;
-                document.getElementById('occupancy-text').innerText = `${data.occupancy} / ${data.capacity} Orang`;
-
-                // Ubah warna background
-                if(data.status === 'full') {
-                    statusCard.style.background = '#f8d7da'; // Merah muda
-                    statusText.style.color = '#721c24';
-                } else if(data.status === 'warning') {
-                    statusCard.style.background = '#fff3cd'; // Kuning muda
-                    statusText.style.color = '#856404';
-                } else {
-                    statusCard.style.background = '#d4edda'; // Hijau muda
-                    statusText.style.color = '#155724';
+                if(statusText) statusText.innerText = data.message;
+                if(occText) occText.innerText = `${data.occupancy} / ${data.capacity} Orang`;
+                
+                // Calculate percentage
+                if(data.capacity > 0) {
+                    const percent = Math.min(100, Math.round((data.occupancy / data.capacity) * 100));
+                    if(perText) perText.innerText = percent + '%';
+                    if(progressFill) progressFill.style.width = percent + '%';
                 }
+
+                // Update status theme
+                if(statusCard) {
+                    statusCard.classList.remove('status-safe', 'status-warning', 'status-full');
+                    if(data.status === 'full') {
+                        statusCard.classList.add('status-full');
+                    } else if(data.status === 'warning') {
+                        statusCard.classList.add('status-warning');
+                    } else {
+                        statusCard.classList.add('status-safe');
+                    }
+                }
+
+                // Update info section
+                const infoCap = document.getElementById('info-capacity');
+                if(infoCap) infoCap.innerText = data.capacity + " Orang";
+
+                // Add to chart activity
+                if(typeof updateChart === 'function') updateChart(data.occupancy);
+                
+                // Update Logs
+                if(typeof updateLogs === 'function') updateLogs(data);
             })
-            .catch(err => console.error("Gagal ambil data API:", err));
+            .catch(err => console.error("Gagal sinkron data:", err));
+    }
+
+    // Chart Configuration
+    let occupancyData = [];
+    let labels = [];
+    const ctx = document.getElementById('occupancyChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Okupansi',
+                data: occupancyData,
+                borderColor: '#4361ee',
+                backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { display: false } },
+                x: { grid: { display: false } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    function updateChart(value) {
+        const now = new Date();
+        const timeLabel = now.getHours() + ":" + String(now.getMinutes()).padStart(2, '0') + ":" + String(now.getSeconds()).padStart(2, '0');
+        
+        labels.push(timeLabel);
+        occupancyData.push(value);
+        
+        if (labels.length > 30) {
+            labels.shift();
+            occupancyData.shift();
+        }
+        chart.update('none');
+    }
+
+    // Log Activity Logic
+    let lastOccupancy = -1;
+    function updateLogs(data) {
+        if (lastOccupancy !== -1 && lastOccupancy !== data.occupancy) {
+            const diff = data.occupancy - lastOccupancy;
+            const time = new Date().toLocaleTimeString('id-ID', { hour12: false });
+            const event = diff > 0 ? `👨‍👩‍👧‍👦 ${diff} In` : `🚶 ${Math.abs(diff)} Out`;
+            const status = data.status.toUpperCase();
+            
+            const logBody = document.getElementById('activity-log-body');
+            if(!logBody) return;
+
+            const newRow = document.createElement('tr');
+            
+            // Remove empty message if exists
+            const empty = logBody.querySelector('.empty-log');
+            if(empty) empty.remove();
+
+            newRow.innerHTML = `
+                <td>${time}</td>
+                <td style="font-weight: 600;">${event}</td>
+                <td><span class="status-pill-small ${data.status}" style="padding: 2px 8px; border-radius: 4px; font-size: 11px;">${status}</span></td>
+            `;
+            
+            logBody.insertBefore(newRow, logBody.firstChild);
+            
+            // Limit to 4 rows to keep it compact
+            if (logBody.children.length > 4) {
+                logBody.lastElementChild.remove();
+            }
+        }
+        lastOccupancy = data.occupancy;
     }
     
-    // Update Jam Realtime
+    // Realtime Clock
     setInterval(() => {
         const now = new Date();
-        const timeString = now.toLocaleTimeString();
-        const clockEl = document.querySelector('.cam-time');
-        if(clockEl) clockEl.innerText = timeString;
+        const timeStr = now.toLocaleTimeString('id-ID', { hour12: false });
+        const clockEl = document.getElementById('realtime-clock');
+        if(clockEl) clockEl.innerText = timeStr;
     }, 1000);
 
-    // Update Data setiap 1 detik
-    setInterval(loadData, 1000);
+    // Auto-update data every 2 seconds for efficiency
+    setInterval(loadData, 2000);
     loadData();
 </script>
-
-<style>
-.monitoring-container {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 20px;
-}
-.blink-green {
-    height: 10px; width: 10px; background-color: #0f0; border-radius: 50%; display: inline-block; margin-right: 5px;
-    animation: blinker 1.5s linear infinite;
-}
-@keyframes blinker { 50% { opacity: 0; } }
-</style>
 {% endblock %}

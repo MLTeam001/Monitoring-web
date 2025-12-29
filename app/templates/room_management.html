@@ -9,7 +9,7 @@
     <!-- Form Tambah Ruangan -->
     <div class="card">
         <div class="card-header">
-            <h3>➕ Tambah Ruangan Baru</h3>
+            <h3>Tambah Ruangan Baru</h3>
         </div>
         <div class="card-body">
             <form action="/add-room" method="POST" id="addRoomForm">
@@ -25,10 +25,10 @@
                                value="10" min="1" max="1000" required>
                     </div>
                     <div class="form-group">
-                        <label for="streamUrl">URL Stream Kamera</label>
+                        <label for="streamUrl">IP / Host Kamera</label>
                         <input type="text" id="streamUrl" name="stream_url" 
-                               placeholder="http://192.168.1.xxx:5001/video_feed">
-                        <small class="form-help">Kosongkan jika tidak ada kamera</small>
+                               placeholder="192.xxx.x.xxx:xxxx">
+                        <small class="form-help"></small>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary">
@@ -92,8 +92,8 @@
                             <span>Okupansi: {{ room_data.inside_count }}/{{ room_data.capacity }} ({{ "%.1f"|format(occupancy_percentage) }}%)</span>
                         </div>
                         <div class="progress-bar">
-                            <div class="fill" style="width: {{ occupancy_percentage }}%; 
-                                background-color: {% if room_data.inside_count >= room_data.capacity %}#dc3545{% elif occupancy_percentage >= 80 %}#ffc107{% else %}#28a745{% endif %};">
+                            <div class="fill progress-{{ 'full' if room_data.inside_count >= room_data.capacity else ('warning' if occupancy_percentage >= 80 else 'normal') }}" 
+                                 style="width: {{ occupancy_percentage }}%;">
                             </div>
                         </div>
                     </div>
@@ -126,10 +126,10 @@
                     <input type="number" id="editCapacity" name="capacity" min="1" max="1000" required>
                 </div>
                 <div class="form-group">
-                    <label for="editStreamUrl">URL Stream Kamera</label>
+                    <label for="editStreamUrl">IP / Host Kamera</label>
                     <input type="text" id="editStreamUrl" name="stream_url" 
-                           placeholder="http://192.168.1.xxx:5001/video_feed">
-                    <small class="form-help">Kosongkan jika tidak ada kamera</small>
+                           placeholder="192.168.1.xxx:5001">
+                    <small class="form-help">Sistem otomatis menambah /video_feed</small>
                 </div>
                 <div class="form-group">
                     <label for="manualOccupancy">Set Occupancy Manual</label>
@@ -391,6 +391,10 @@
     height: 100%;
     transition: width 0.3s ease;
 }
+
+.progress-normal { background-color: #28a745; }
+.progress-warning { background-color: #ffc107; }
+.progress-full { background-color: #dc3545; }
 
 .empty-state {
     text-align: center;

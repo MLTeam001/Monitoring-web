@@ -64,8 +64,61 @@ def save_rooms_data(rooms_data):
 rooms_data = load_rooms_data()
 
 # --- HELPER: GENERATE DUMMY REPORT DATA ---
-def generate_monthly_data():
-    """Membuat data palsu untuk laporan bulanan"""
+def format_stream_url(url):
+    """Memformat IP/Host kamera menjadi URL lengkap dengan /video_feed"""
+    if not url:
+        return None
+    
+    url = url.strip()
+    # Hapus whitespace di dalam (antisipasi copypaste kotor)
+    url = "".join(url.split())
+    
+    if not url:
+        return None
+        
+    # Pastikan diawali http
+    if not url.startswith(('http://', 'https://')):
+        url = 'http://' + url
+        
+    # Pastikan diakhiri /video_feed
+    if not url.endswith('/video_feed'):
+        # Hapus trailing slash jika ada sebelum menambah /video_feed
+        url = url.rstrip('/') + '/video_feed'
+        
+    return url
+
+def generate_monthly_data(room_name=None):
+    """Membuat data palsu untuk laporan bulanan based on room if provided"""
+    # Ambil data real-time untuk hari ini
+    rooms_data_current = load_rooms_data()
+    
+    # Hitung statistik real-time hari ini
+    today_visitors = 0
+    today_occupancy_sum = 0
+    today_alerts = 0
+    room_count = 0
+    
+    if room_name and room_name in rooms_data_current:
+        room = rooms_data_current[room_name]
+        today_visitors = int(room.get('door_in', 0))
+        cap = int(room.get('capacity', 10))
+        occ = int(room.get('inside_count', 0)) if int(room.get('inside_count', 0)) > 0 else max(0, int(room.get('door_in', 0)) - int(room.get('door_out', 0)))
+        today_occupancy_sum = (occ / cap * 100) if cap > 0 else 0
+        today_alerts = 1 if today_occupancy_sum >= 80 else 0
+        room_count = 1
+        capacity_ref = cap
+    else:
+        for r_name, r_data in rooms_data_current.items():
+            today_visitors += int(r_data.get('door_in', 0))
+            cap = int(r_data.get('capacity', 10))
+            occ = int(r_data.get('inside_count', 0)) if int(r_data.get('inside_count', 0)) > 0 else max(0, int(r_data.get('door_in', 0)) - int(r_data.get('door_out', 0)))
+            today_occupancy_sum += (occ / cap * 100) if cap > 0 else 0
+            if (occ / cap * 100) >= 80: today_alerts += 1
+            room_count += 1
+        capacity_ref = 100 # Multi-room context
+
+    avg_occupancy_today = int(today_occupancy_sum / room_count) if room_count > 0 else 0
+    
     data = []
     total_visitors = 0
     peak_day = {'date': '', 'count': 0}
@@ -76,14 +129,20 @@ def generate_monthly_data():
         date = today - timedelta(days=29-i)
         date_str = date.strftime('%d %b')
         
-        # Random data pengunjung
-        visitors = random.randint(50, 200)
-        occupancy_rate = random.randint(40, 95)
-        alerts = random.randint(0, 5)
+        # Jika hari terakhir (hari ini), gunakan data real-time
+        if i == 29:
+            visitors = today_visitors
+            occupancy_rate = avg_occupancy_today
+            alerts = today_alerts
+        else:
+            # Random data pengunjung - scaled by capacity_ref for past days
+            visitors = random.randint(int(capacity_ref * 2), int(capacity_ref * 8)) if room_name else random.randint(100, 500)
+            occupancy_rate = random.randint(40, 95)
+            alerts = random.randint(0, 3) if occupancy_rate > 85 else 0
         
         total_visitors += visitors
         
-        if visitors > peak_day['count']:
+        if visitors >= peak_day['count']:
             peak_day = {'date': date_str, 'count': visitors}
             
         status = 'Normal'
@@ -98,13 +157,19 @@ def generate_monthly_data():
             'status': status
         })
         
+    # Safety Score Calculation: Basis 100%, dikurangi penalti jika ada alert hari ini
+    # Di dunia nyata, ini akan dihitung dari rata-rata sejarah, namun di sini kita bikin dinamis
+    base_safety = 100
+    penalty = (today_alerts * 5) if room_name else (today_alerts * 2)
+    safety_score = max(75, base_safety - penalty)
+        
     return {
         'daily_logs': data,
         'summary': {
             'total_visitors': total_visitors,
             'avg_daily': int(total_visitors / 30),
             'peak_day': peak_day,
-            'safety_score': 98 - random.randint(0, 5)
+            'safety_score': safety_score
         }
     }
 
@@ -178,8 +243,17 @@ def monitoring():
 @bp.route('/reports')
 def reports():
     """Halaman Laporan Bulanan"""
-    report_data = generate_monthly_data()
-    return render_template('reports.html', data=report_data)
+    selected_room = request.args.get('room')
+    report_data = generate_monthly_data(selected_room)
+    
+    # Get all rooms for selector
+    rooms_data = load_rooms_data()
+    rooms_list = list(rooms_data.keys())
+    
+    return render_template('reports.html', 
+                          data=report_data, 
+                          rooms_list=rooms_list, 
+                          selected_room=selected_room)
 
 @bp.route('/room-management')
 def room_management():
@@ -210,7 +284,7 @@ def add_room():
     # Buat ruangan baru
     rooms_data[room_name] = {
         'capacity': capacity_int,
-        'stream_url': stream_url if stream_url else None,
+        'stream_url': format_stream_url(stream_url),
         'door_in': 0,
         'door_out': 0,
         'inside_count': 0,
@@ -242,13 +316,13 @@ def get_room_status(room_name):
     
     if occupancy >= capacity:
         status = 'full'
-        message = "⛔ RUANGAN PENUH"
+        message = "CAPACITY REACHED"
     elif capacity > 0 and (occupancy / capacity) >= 0.8:
         status = 'warning'
-        message = "⚠️ Hampir Penuh"
+        message = "LIMITED CAPACITY"
     else:
         status = 'normal'
-        message = "✅ Tersedia"
+        message = "ROOM AVAILABLE"
 
     return jsonify({
         'room_name': room_name, 
@@ -323,7 +397,7 @@ def edit_room(room_name):
             return jsonify({'error': 'Kapasitas harus berupa angka'}), 400
             
     if 'stream_url' in data:
-        rooms_data[room_name]['stream_url'] = data['stream_url']
+        rooms_data[room_name]['stream_url'] = format_stream_url(data['stream_url'])
         
     if 'manual_occupancy' in data:
         try:
