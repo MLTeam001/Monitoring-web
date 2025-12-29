@@ -1,174 +1,152 @@
 {% extends "base.html" %}
 
-{% block title %}Laporan Bulanan{% endblock %}
-{% block page_header %}Laporan Aktivitas{% endblock %}
+{% block title %}Laporan Aktivitas - Analysis{% endblock %}
+{% block page_header %}Analytics & Reports{% endblock %}
 
 {% block content %}
-<style>
-    /* Style Khusus Halaman Report */
-    .report-summary {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 20px;
-        margin-bottom: 30px;
-    }
-    .summary-card {
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .summary-label { font-size: 0.85rem; color: #666; margin-bottom: 5px; }
-    .summary-value { font-size: 1.8rem; font-weight: 700; color: #1e3c72; }
-    .summary-sub { font-size: 0.8rem; color: #28a745; margin-top: 5px; }
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}">
 
-    /* Simple CSS Chart */
-    .chart-container {
-        background: white;
-        padding: 25px;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
-        margin-bottom: 30px;
-        overflow-x: auto;
-    }
-    .chart-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: #333; }
-    
-    .bar-chart {
-        display: flex;
-        align-items: flex-end;
-        height: 200px;
-        gap: 10px;
-        padding-bottom: 5px;
-        border-bottom: 1px solid #ddd;
-    }
-    .bar-group {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-width: 30px;
-    }
-    .bar {
-        width: 100%;
-        background: #4361ee;
-        border-radius: 4px 4px 0 0;
-        transition: height 0.5s ease;
-        position: relative;
-    }
-    .bar:hover { background: #2a5298; }
-    .bar-label {
-        font-size: 0.7rem;
-        color: #666;
-        margin-top: 5px;
-        transform: rotate(-45deg);
-        white-space: nowrap;
-    }
-    .bar-tooltip {
-        position: absolute;
-        top: -25px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #333;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.7rem;
-        display: none;
-    }
-    .bar:hover .bar-tooltip { display: block; }
-
-    /* Table Styling */
-    .report-table {
-        width: 100%;
-        border-collapse: collapse;
-        background: white;
-        border-radius: 12px;
-        overflow: hidden;
-        border: 1px solid #e5e7eb;
-    }
-    .report-table th, .report-table td {
-        padding: 15px;
-        text-align: left;
-        border-bottom: 1px solid #f3f4f6;
-    }
-    .report-table th { background: #f9fafb; font-weight: 600; color: #4b5563; }
-    .status-pill {
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    .pill-Normal { background: #dcfce7; color: #166534; }
-    .pill-High { background: #fef9c3; color: #854d0e; }
-    .pill-Critical { background: #fee2e2; color: #991b1b; }
-
-    @media (max-width: 1024px) {
-        .report-summary { grid-template-columns: 1fr 1fr; }
-    }
-</style>
-
-<div class="report-summary">
-    <div class="summary-card">
-        <div class="summary-label">Total Pengunjung (Bulan Ini)</div>
-        <div class="summary-value">{{ data.summary.total_visitors }}</div>
-        <div class="summary-sub">↗ 12% dari bulan lalu</div>
-    </div>
-    <div class="summary-card">
-        <div class="summary-label">Rata-rata Harian</div>
-        <div class="summary-value">{{ data.summary.avg_daily }}</div>
-        <div class="summary-sub">Orang / Hari</div>
-    </div>
-    <div class="summary-card">
-        <div class="summary-label">Hari Tersibuk</div>
-        <div class="summary-value" style="font-size:1.4rem;">{{ data.summary.peak_day.date }}</div>
-        <div class="summary-sub">{{ data.summary.peak_day.count }} Pengunjung</div>
-    </div>
-    <div class="summary-card">
-        <div class="summary-label">Skor Keamanan</div>
-        <div class="summary-value text-success">{{ data.summary.safety_score }}%</div>
-        <div class="summary-sub">Kepatuhan Kapasitas</div>
-    </div>
-</div>
-
-<div class="chart-container">
-    <h3 class="chart-title">📈 Tren Kunjungan 30 Hari Terakhir</h3>
-    <div class="bar-chart">
-        {% for log in data.daily_logs %}
-        <div class="bar-group">
-            <div class="bar" style="height: {{ (log.visitors / 250 * 100)|int }}%;">
-                <div class="bar-tooltip">{{ log.visitors }}</div>
-            </div>
-            <div class="bar-label">{{ log.date }}</div>
+<div class="report-container">
+    <!-- Header Controls -->
+    <div class="report-header-controls">
+        <div class="filter-group">
+            <span class="filter-label">Filter Ruangan:</span>
+            <select id="roomFilter" class="report-select" onchange="filterByRoom(this.value)">
+                <option value="">Semua Ruangan (Aggregated)</option>
+                {% for room in rooms_list %}
+                <option value="{{ room }}" {% if selected_room == room %}selected{% endif %}>{{ room }}</option>
+                {% endfor %}
+            </select>
         </div>
-        {% endfor %}
+        <div class="action-group">
+            <button onclick="window.print()" class="btn-link" style="color: var(--rep-text-muted); font-size: 14px; font-weight: 700; background: none; border: none; cursor: pointer;">
+                🖨️ Cetak Laporan
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Grid -->
+    <div class="report-summary-grid">
+        <div class="summary-card">
+            <span class="label">Total Pengunjung</span>
+            <span class="value">{{ data.summary.total_visitors }}</span>
+            <span class="trend up">↗ 12.5% vs Bulan Lalu</span>
+        </div>
+        <div class="summary-card">
+            <span class="label">Rata-rata Harian</span>
+            <span class="value">{{ data.summary.avg_daily }}</span>
+            <span class="trend">Pengunjung / Hari</span>
+        </div>
+        <div class="summary-card">
+            <span class="label">Puncak Kunjungan</span>
+            <span class="value" style="font-size: 24px;">{{ data.summary.peak_day.date }}</span>
+            <span class="trend up">{{ data.summary.peak_day.count }} Pengunjung</span>
+        </div>
+        <div class="summary-card">
+            <span class="label">Safety Compliance</span>
+            <span class="value" style="color: var(--rep-success);">{{ data.summary.safety_score }}%</span>
+            <span class="trend">Kepatuhan Kapasitas</span>
+        </div>
+    </div>
+
+    <!-- Chart Section -->
+    <div class="report-chart-section">
+        <div class="chart-header">
+            <h3 class="chart-title">📈 Tren Kunjungan (30 Hari Terakhir)</h3>
+        </div>
+        <div style="height: 350px;">
+            <canvas id="monthlyTrendChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="report-table-card">
+        <div class="table-header">
+            <h3 class="chart-title">📋 Log Aktivitas Harian</h3>
+        </div>
+        <table class="log-table">
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Pengunjung</th>
+                    <th>Rata-rata Okupansi</th>
+                    <th>Alerts</th>
+                    <th>Status System</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in data.daily_logs|reverse %}
+                <tr>
+                    <td style="font-weight: 700;">{{ log.date }}</td>
+                    <td>{{ log.visitors }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span>{{ log.avg_occupancy }}%</span>
+                            <div class="occupancy-bar-mini">
+                                <div class="occupancy-fill" style="width: {{ log.avg_occupancy }}%;"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="color: {% if log.alerts > 0 %}var(--rep-danger){% else %}inherit{% endif %}; font-weight: 600;">
+                        {{ log.alerts }} {{ "Kali" if log.alerts > 0 else "" }}
+                    </td>
+                    <td>
+                        <span class="status-badge {{ log.status|lower }}">{{ log.status }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
-<div class="chart-container" style="padding: 0; border: none; background: transparent;">
-    <h3 class="chart-title">📋 Log Aktivitas Harian</h3>
-    <table class="report-table">
-        <thead>
-            <tr>
-                <th>Tanggal</th>
-                <th>Total Pengunjung</th>
-                <th>Rata-rata Okupansi</th>
-                <th>Peringatan Kapasitas</th>
-                <th>Status Harian</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for log in data.daily_logs|reverse %}
-            <tr>
-                <td>{{ log.date }}</td>
-                <td>{{ log.visitors }}</td>
-                <td>{{ log.avg_occupancy }}%</td>
-                <td>{{ log.alerts }} kali</td>
-                <td><span class="status-pill pill-{{ log.status }}">{{ log.status }}</span></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function filterByRoom(room) {
+    const url = new URL(window.location);
+    if (room) url.searchParams.set('room', room);
+    else url.searchParams.delete('room');
+    window.location.href = url.href;
+}
 
+// Chart Configuration
+const ctx = document.getElementById('monthlyTrendChart').getContext('2d');
+const chartData = {
+    labels: {{ data.daily_logs|map(attribute='date')|list|tojson }},
+    datasets: [{
+        label: 'Jumlah Pengunjung',
+        data: {{ data.daily_logs|map(attribute='visitors')|list|tojson }},
+        backgroundColor: 'rgba(67, 97, 238, 0.4)',
+        borderColor: '#4361ee',
+        borderWidth: 2,
+        borderRadius: 5,
+        tension: 0.3,
+        fill: true,
+        pointBackgroundColor: '#4361ee'
+    }]
+};
+
+new Chart(ctx, {
+    type: 'bar', // Professional bar chart for historical data
+    data: chartData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: { color: '#f1f5f9' },
+                ticks: { color: '#64748b', font: { weight: '600' } }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { color: '#64748b', font: { weight: '600' } }
+            }
+        }
+    }
+});
+</script>
 {% endblock %}

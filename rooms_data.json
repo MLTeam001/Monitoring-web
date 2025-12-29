@@ -25,5 +25,14 @@
         "inside_count": 0,
         "status": "available",
         "last_update": null
+    },
+    "Ruang ICT": {
+        "capacity": 10,
+        "stream_url": "http://192.168.1.182:5001/video_feed",
+        "door_in": 0,
+        "door_out": 0,
+        "inside_count": 0,
+        "status": "available",
+        "last_update": null
     }
 }
